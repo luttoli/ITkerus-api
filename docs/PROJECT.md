@@ -51,9 +51,13 @@ Prisma의 개발 마이그레이션은 고정된 `itkerus_dev_shadow`를 변경 
 ### User
 
 - 닉네임: 앞뒤 공백 제거 후 2~10자, 고유값
-- 한 줄 소개: 선택값
-- 주 역할: 1개 필수
+- 한 줄 소개: 선택값, 최대 60자
+- 역할 enum: `DEVELOPER`, `PLANNER`, `DESIGNER`, `MARKETER`, `OPERATOR`, `USER_TESTER`
+- 주 역할: 가입 완료 시 1개 필수
 - 보조 역할: 최대 2개, 주 역할과 중복 불가
+- 소셜 토큰 검증 직후에는 온보딩 전 `User`를 먼저 만들 수 있으므로 닉네임과 주 역할은 DB에서 `NULL`을 허용한다.
+- `isOnboardingCompleted`가 `true`가 되는 요청에서 닉네임·주 역할 필수, 보조 역할 최대 2개와 주 역할 중복 금지를 서비스 트랜잭션으로 검증한다.
+- 보조 역할은 `UserSecondaryRole` 관계 테이블에 저장하고 `(userId, role)` 고유 제약으로 같은 역할 중복을 막는다.
 - 사용자가 직접 프로필 이미지를 등록하지 않으며 iOS가 주 역할 기본 이미지를 사용
 - 이메일은 계정 고유 식별자로 사용하지 않음
 
@@ -62,6 +66,8 @@ Prisma의 개발 마이그레이션은 고정된 `itkerus_dev_shadow`를 변경 
 - 제공자: `APPLE`, `KAKAO`
 - 제공자 사용자 ID와 `User`를 연결
 - `(provider, providerUserId)`를 고유값으로 유지
+- `(userId, provider)`도 고유값으로 유지해 한 사용자가 같은 제공자 계정을 중복 연결하지 못하게 함
+- 사용자가 삭제되면 연결된 소셜 계정과 보조 역할도 함께 삭제
 - Apple·Kakao가 검증한 식별자만 저장하고 클라이언트가 주장한 임의 ID를 신뢰하지 않음
 
 ### ProjectPost
@@ -171,6 +177,7 @@ Prisma의 개발 마이그레이션은 고정된 `itkerus_dev_shadow`를 변경 
 - 운영은 커밋된 마이그레이션을 `npm run prisma:migrate:prod`로만 적용한다.
 - 운영 DB에 `prisma db push`를 실행하지 않는다.
 - 모든 실제 테이블·컬럼에 DBeaver용 한국어 Comment를 적용한다.
+- Comment는 `prisma/add-database-comments.ts`에서 누락 여부를 먼저 검사한 뒤 적용한다. 개발은 `npm run db:comments:dev`, 운영은 마이그레이션 배포 뒤 `npm run db:comments:prod`를 실행한다.
 - 운영 반영 전 DB 백업과 체크섬을 만들고 별도 임시 DB에 복원해 실제 복구 가능성을 확인한다.
 - 데이터 삭제·enum 변경·필수 컬럼 추가는 기존 데이터 변환 순서와 롤백 방법을 먼저 문서화한다.
 

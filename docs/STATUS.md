@@ -8,57 +8,56 @@
 - 작업 PC: 맥북
 - 브랜치: `main`
 - 원격 저장소: `github.com/luttoli/ITkerus-api`
-- 마지막 커밋: `5bc0ae1 [chore] NestJS 서버 기본 프로젝트와 환경 분리 구성 / 2.0.22`
+- 마지막 커밋: `19c3492 [feat] [docs] 서버 설계와 전체 구현 체크리스트 정리 / 개발 DB 연결과 health 검증 구성 / 2.0.22`
 - 앱 공개 버전: `2.0.22`
 - 서버 패키지 버전: `0.0.1`
 
 ## 2. 현재 구현 상태
 
-- [x] NestJS 11·TypeScript 프로젝트 생성
-- [x] Prisma 6·MariaDB datasource와 전역 Prisma Module 추가
-- [x] 기본 경로 `/api/v1` 적용
-- [x] 맥북 `.env.development`와 Mac mini `.env.production` 실행 명령 분리
-- [x] 개발 `migrate dev`와 운영 `migrate deploy` 명령 분리
-- [x] 서버 전용 GitHub 저장소 연결과 첫 push
-- [x] 서버 `AGENTS.md`, `docs/PROJECT.md`, `docs/STATUS.md` 기준 문서 구성
-- [x] 맥북 공용 `bnb-mariadb`에 `itkerus_dev`와 `itkerus_dev_shadow` 생성
-- [x] `itkerus_dev_app` 전용 계정에 두 개발 DB만 접근할 수 있는 권한 부여
-- [x] 무작위 개발 비밀번호를 Git 제외 `.env.development`에 권한 `600`으로 저장
-- [x] health 기능을 Controller·Service·Module로 분리
-- [x] `GET /api/v1/health`가 앱 상태와 실제 MariaDB 연결 상태를 확인
+- [x] NestJS 11·TypeScript 프로젝트와 `/api/v1` 기본 경로
+- [x] Prisma 6·MariaDB datasource와 전역 Prisma Module
+- [x] 맥북 `.env.development`와 Mac mini `.env.production` 실행·마이그레이션 명령 분리
+- [x] 맥북 공용 MariaDB의 `itkerus_dev`, `itkerus_dev_shadow`와 전용 `itkerus_dev_app` 계정
+- [x] 실제 DB 연결을 확인하는 `GET /api/v1/health`
+- [x] `User`, `SocialAccount`, `UserSecondaryRole` 최초 Prisma 스키마
+- [x] 공개 UUID, 닉네임 고유 제약, Apple·Kakao 제공자 식별자 복합 고유 제약
+- [x] 주 역할 6종 enum과 보조 역할 중복 방지 관계
+- [x] 사용자 삭제 시 소셜 계정·보조 역할 `CASCADE` 삭제
+- [x] 온보딩 전 사용자와 가입 완료 상태를 구분하는 `isOnboardingCompleted`
+- [x] 실제 테이블·컬럼의 한국어 Comment 자동 적용과 누락 검사 명령
+- [x] 첫 개발 마이그레이션 `20261019162754_add_user_accounts_and_roles`
 
 ## 3. 검증 상태
 
 확인 완료:
 
-- OrbStack의 MariaDB·Redis·Portainer·Uptime Kuma 컨테이너 실행 상태
-- `itkerus_dev`, `itkerus_dev_shadow` 존재와 전용 계정의 DB별 권한
-- `.env.development` 권한 `600`과 Git 제외
-- `npm run prisma:generate`
-- `npm run prisma:migrate:dev -- --name init` 연결 성공과 현재 스키마 동기화 상태
+- 첫 마이그레이션을 `itkerus_dev`에 생성·적용하고 Prisma Client 생성
+- `User`, `SocialAccount`, `UserSecondaryRole` 테이블과 모든 컬럼의 한국어 Comment
+- 닉네임, 제공자 식별자, 사용자별 제공자, 사용자별 보조 역할 고유 인덱스
+- 사용자 관계의 외래키와 `ON DELETE CASCADE`
 - `npm run build`
 - `npm test -- --runInBand` 2개 통과
-- NestJS 개발 서버 시작과 TypeScript 오류 0개
-- `GET /api/v1/health`의 `status: ok`, `database: connected` 응답
+
+사용자 확인 항목:
+
+- DBeaver에서 `itkerus_dev`의 세 테이블, 관계와 Comment를 화면으로 확인
 
 아직 확인하지 않음:
 
-- DBeaver에서 사용자가 `itkerus_dev` 연결과 스키마 직접 확인
-- 앱 모델이 없어 첫 마이그레이션 파일은 아직 생성되지 않음
 - Mac mini 운영 컨테이너와 `itkerus_prod` 연결
+- 운영 환경의 `migrate deploy`와 Comment 명령
 
 ## 4. 바로 다음 작업
 
-사용자와 소셜 계정·역할의 최초 Prisma 스키마를 만들고 첫 개발 마이그레이션을 생성한다.
+JWT 기반 자체 세션의 공통 기반을 만든다.
 
-- [ ] `User` 모델에 UUID, 닉네임, 소개, 주 역할과 가입 완료 상태 정의
-- [ ] `SocialAccount`에 Apple·Kakao 제공자와 검증된 사용자 식별자 정의
-- [ ] 보조 역할 최대 2개를 저장할 관계 모델 정의
-- [ ] 고유 제약, 인덱스와 삭제 정책 정의
-- [ ] 모든 실제 컬럼의 DBeaver용 한국어 Comment 정의
-- [ ] 첫 `prisma migrate dev` 실행
-- [ ] Prisma Client 생성과 서버 빌드·테스트
-- [ ] DBeaver에서 테이블·제약·Comment 확인
+- [ ] JWT 필수 환경변수와 만료 시간 검증
+- [ ] 액세스 토큰 발급·검증 서비스
+- [ ] `Authorization: Bearer` 공통 인증 Guard
+- [ ] 인증 사용자 ID를 Controller에 전달하는 데코레이터
+- [ ] 토큰 없음·변조·만료에 대한 401과 안정적인 오류 코드 테스트
+
+그다음 Apple·Kakao 토큰 검증과 신규·기존 사용자 분기를 연결한다.
 
 ## 5. 전체 구현 체크리스트
 
@@ -67,17 +66,17 @@
 - [x] 개발·운영 환경 파일과 명령 분리
 - [x] 개발 DB·계정과 shadow DB 연결
 - [x] health API의 실제 DB 연결 확인
-- [ ] 최초 사용자 스키마와 개발 마이그레이션
-- [ ] DB 컬럼 Comment 자동 적용과 누락 검사
+- [x] 최초 사용자 스키마와 개발 마이그레이션
+- [x] DB 테이블·컬럼 Comment 자동 적용과 누락 검사
 - [ ] 환경변수 필수값 검증
 - [ ] 공통 오류 응답과 요청 ID
 
 ### 인증과 사용자
 
-- [ ] `User`, `SocialAccount`, 사용자 역할 스키마
+- [x] `User`, `SocialAccount`, 사용자 역할 스키마
+- [ ] JWT 발급·검증 Guard
 - [ ] Apple ID 토큰 검증
 - [ ] Kakao ID 토큰 검증
-- [ ] JWT 발급·검증 Guard
 - [ ] 신규·기존 사용자 분기
 - [ ] 닉네임·소개·주 역할·보조 역할 저장
 - [ ] 내 프로필·공개 프로필 조회
@@ -138,9 +137,9 @@
 
 ## 6. 남은 결정과 주의
 
+- 보조 역할 최대 2개와 주 역할 중복 금지는 단순 DB 제약으로 완전히 표현할 수 없어 프로필 저장 서비스의 트랜잭션에서 검증한다.
+- 닉네임과 주 역할은 소셜 로그인 직후 온보딩 전 상태 때문에 DB에서 `NULL`을 허용한다. 가입 완료 처리에서는 반드시 값과 길이를 검증한다.
 - 한 사용자가 같은 프로젝트에 잇커스 노트를 여러 개 남길 수 있는지 확정해야 한다.
 - 조회 수 증가와 중복 방지 정책을 확정하기 전에는 단순 요청마다 카운트를 올리지 않는다.
-- 열정 불꽃 규칙이 정해지기 전에는 별도 점수 테이블을 만들지 않는다.
 - 운영 DB에는 `db push`나 `migrate dev`를 실행하지 않는다.
 - 2.0에는 프로젝트 이미지 직접 업로드를 추가하지 않는다.
-- 서버 구현 세부사항은 이 문서에, iOS 계약에 영향을 주는 내용은 양쪽 저장소 문서에 함께 반영한다.

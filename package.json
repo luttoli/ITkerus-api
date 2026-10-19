@@ -7,7 +7,7 @@
   "license": "UNLICENSED",
   "scripts": {
     "build": "nest build",
-    "format": "prettier --write \"src/**/*.ts\" \"test/**/*.ts\"",
+    "format": "prettier --write \"src/**/*.ts\" \"test/**/*.ts\" \"prisma/**/*.ts\"",
     "start": "node --env-file=.env.development node_modules/@nestjs/cli/bin/nest.js start",
     "start:dev": "node --env-file=.env.development node_modules/@nestjs/cli/bin/nest.js start --watch",
     "start:debug": "node --env-file=.env.development node_modules/@nestjs/cli/bin/nest.js start --debug --watch",
@@ -17,6 +17,8 @@
     "prisma:migrate:dev": "node --env-file=.env.development node_modules/prisma/build/index.js migrate dev",
     "prisma:migrate:prod": "node --env-file=.env.production node_modules/prisma/build/index.js migrate deploy",
     "prisma:studio:dev": "node --env-file=.env.development node_modules/prisma/build/index.js studio",
+    "db:comments:dev": "node --env-file=.env.development -r ts-node/register prisma/add-database-comments.ts",
+    "db:comments:prod": "node --env-file=.env.production -r ts-node/register prisma/add-database-comments.ts",
     "test": "jest",
     "test:watch": "jest --watch",
     "test:cov": "jest --coverage",
