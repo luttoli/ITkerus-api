@@ -26,6 +26,7 @@ describe('AppController (e2e)', () => {
           expect.objectContaining({
             service: 'itkerus-api',
             status: 'ok',
+            database: 'connected',
           }),
         );
       });

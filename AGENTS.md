@@ -1,21 +1,72 @@
-# ITkerus 서버 공동 개발 규칙
+# ITkerus API 공동 개발 규칙
 
-이 저장소는 ITkerus iOS 앱의 NestJS API 서버다.
+이 파일은 ITkerus 백엔드를 돕는 모든 AI가 작업 전에 가장 먼저 읽는 단일 규칙 문서다. iOS 저장소의 `AGENTS.md`와 함께 사용하며, 대화 기록보다 현재 코드와 문서를 우선한다.
 
-## 작업 전 확인
+## 1. 작업 전 읽는 순서
 
-1. 이 파일을 끝까지 읽는다.
-2. `README.md`에서 개발·운영 환경 분리 방식을 확인한다.
-3. Git 상태와 최근 커밋을 확인한다.
-4. `prisma/schema.prisma`와 작업 대상 코드를 확인한다.
+1. 이 `AGENTS.md`
+2. `docs/PROJECT.md`
+3. `docs/STATUS.md`
+4. Git 상태, 원격과의 차이와 최근 커밋
+5. `prisma/schema.prisma`와 작업 대상의 실제 코드
+6. API 계약이나 화면 데이터가 바뀌면 iOS 저장소의 `ITkerus/Docs/PROJECT.md`와 `STATUS.md`
 
-## 기술 기준
+## 2. 프로젝트 배경
 
-- 언어는 TypeScript, API 프레임워크는 NestJS를 사용한다.
-- 데이터 접근은 Prisma, 데이터베이스는 MariaDB를 사용한다.
-- 개발 환경은 맥북의 `itkerus_dev`, 운영 환경은 맥미니의 `itkerus_prod`를 사용한다.
-- 개발과 운영은 같은 코드를 사용하고 환경변수와 데이터베이스만 분리한다.
+- 이 서버는 ITkerus iOS 앱 전용 API다.
+- 개발 서버와 DB는 맥북에서, 운영 서버와 DB는 Mac mini에서 실행한다.
+- 코드는 한 저장소에서 관리하고 환경변수, DB와 외부 자격 증명만 환경별로 분리한다.
+- 개발 DB는 `itkerus_dev`, Prisma 개발 마이그레이션 비교 DB는 `itkerus_dev_shadow`, 운영 DB는 `itkerus_prod`다.
+- TypeScript, NestJS, Prisma와 MariaDB를 사용한다. Vapor와 Supabase를 추가하지 않는다.
+- 서버는 인증, 사용자, 프로젝트, 잇커스 노트, 도움됐어요, 검색·매치, 신고·차단과 운영 데이터를 담당한다.
+- 2.0에서는 프로젝트 이미지를 직접 업로드하지 않는다. App Store·Google Play·Web의 공개 URL만 저장하고 외부 이미지가 없으면 iOS가 프로젝트 ID 기반 추상 마크를 그린다.
+
+## 3. 사용자와 AI의 역할
+
+- 기본 개발 방식은 AI가 서버 코드를 직접 구현하고 사용자가 VS Code, DBeaver와 실제 앱에서 결과를 확인하는 것이다.
+- 한 번에 하나의 작은 서버 작업을 완료하고 목적, 변경 파일, 데이터 흐름, 확인 방법과 다음 작업을 짧게 설명한다.
+- 사용자가 `직접 작성할게`라고 명시한 경우에만 코드 위치와 작성 방법을 단계별로 안내한다.
+- 기능, 스키마, API 계약과 운영 방식이 확정되면 별도 요청 없이 `docs/PROJECT.md`와 `docs/STATUS.md`를 갱신한다.
+- `docs/STATUS.md`에는 현재 상태와 바로 다음 작업만 유지하고 과거 작업 일지는 Git 기록으로 남긴다.
+- pull, commit, push는 사용자가 명시적으로 요청한 경우에만 실행한다.
+- 커밋 작성자와 커미터는 저장소의 로컬 Git 설정인 `luttoli`만 사용한다. AI 이름이나 `Co-Authored-By`를 넣지 않는다.
+
+## 4. NestJS 코드 규칙
+
+- 기능은 `Controller`, `Service`, `Module` 단위로 분리한다.
+- Controller는 요청·응답과 인증 사용자 전달만 담당하고, 업무 규칙과 Prisma 쿼리는 Service에 둔다.
+- 인증이 필요한 API는 공통 Guard를 사용하고 모든 쓰기 작업에서 서버가 소유자 권한을 다시 확인한다.
+- 요청 DTO는 런타임 검증을 제공해야 한다. 문자열 길이, enum, URL, 배열 개수와 선택 필드 조건을 클라이언트에만 맡기지 않는다.
+- API 오류는 HTTP 상태 코드와 안정적인 오류 코드를 함께 반환해 iOS가 재시도 가능 여부를 구분하게 한다.
+- 공개 응답 DTO에 이메일, 소셜 식별자, 차단·신고 내부 정보와 비밀값을 포함하지 않는다.
+- 목록 API는 커서 페이지네이션을 기본으로 하고 전체 테이블을 메모리로 읽어 정렬·집계하지 않는다.
+- 통계와 순위는 가능한 한 MariaDB의 집계 쿼리로 계산한다.
+- 날짜는 DB와 API에서 UTC로 저장·전송하고 iOS가 표시 시각대로 변환한다.
+
+## 5. Prisma와 MariaDB 규칙
+
+- API 공개 ID는 UUID 문자열을 사용하고 iOS의 `UUID`와 바로 변환할 수 있게 한다.
+- 개발 스키마 변경은 `prisma migrate dev`, 운영 반영은 `prisma migrate deploy`만 사용한다.
+- 운영 DB에서 `prisma db push`, `prisma migrate dev`, 임의 DROP과 전체 데이터 수정 쿼리를 실행하지 않는다.
+- 마이그레이션 파일은 코드와 함께 커밋하고 운영 배포 전에 개발 DB에서 신규 생성과 기존 데이터 보존을 확인한다.
+- 모든 실제 앱 테이블과 컬럼은 DBeaver에서 의미를 확인할 수 있는 한국어 Comment를 가진다. 모델·컬럼 변경 작업에는 Comment 반영과 확인을 포함한다.
+- 외래키, 고유 제약, 복합 인덱스와 삭제 정책은 Prisma 관계에만 기대지 말고 스키마에서 명시한다.
+- 잇커스 노트 수, 도움 수처럼 원본 행에서 계산할 수 있는 값은 초기에는 중복 저장하지 않는다. 성능상 필요해질 때 트랜잭션과 복구 전략을 정한 뒤 카운터를 추가한다.
+
+## 6. 환경과 비밀값
+
 - `.env.development`와 `.env.production`은 Git에 추가하지 않는다.
-- 운영 DB에는 `prisma migrate deploy`만 사용한다. `db push`와 `migrate dev`를 실행하지 않는다.
-- Supabase와 Vapor를 추가하지 않는다.
-- 사용자가 요청하지 않은 Git commit, push, pull은 실행하지 않는다.
+- 개발 실행은 `.env.development`, 운영 실행은 `.env.production`만 읽는다.
+- DB 비밀번호, JWT 비밀키, Apple 개인키, Kakao 관리자 키와 APNs 키는 코드·문서·로그에 값으로 남기지 않는다.
+- 앱에는 DB 접속 정보와 제공자 비밀키를 포함하지 않는다.
+- 운영 API와 DB는 맥북 개발 환경을 참조하지 않는다. 운영 장애나 테스트가 개발 DB에 영향을 주어서는 안 된다.
+- 운영 공개 전 Docker 비루트 실행, 읽기 전용 파일시스템, 자동 재시작, HTTPS, 헬스체크, 로그 제한, DB 자동 백업과 실제 복원 검증을 완료한다.
+
+## 7. 검증과 문서 유지
+
+- 코드 변경 후 `npm run build`와 관련 단위 테스트를 실행한다.
+- DB 작업은 개발 DB 마이그레이션, Prisma Client 생성, Comment 확인과 DBeaver 확인까지 완료 조건에 포함한다.
+- API 작업은 성공 응답뿐 아니라 400, 401, 403, 404, 409와 소유권 거부를 확인한다.
+- 서버 내부 경로와 Prisma 구현 세부사항은 이 저장소 문서에 기록한다.
+- iOS 모델·화면·네트워크 계약에 영향을 주는 요청·응답과 정책은 양쪽 저장소 문서에 같은 의미로 반영한다.
+- 완료하지 않은 검증은 통과했다고 기록하지 않고 `docs/STATUS.md`의 남은 문제에 명시한다.
