@@ -163,7 +163,11 @@ Prisma의 개발 마이그레이션은 고정된 `itkerus_dev_shadow`를 변경 
 ## 5. 인증과 권한
 
 - Apple과 Kakao 토큰은 공식 공개키, issuer, audience, 만료와 nonce를 서버가 검증한다.
-- 검증 성공 후 자체 JWT를 발급하고 iOS는 Keychain에 저장한다.
+- 검증 성공 후 자체 액세스 JWT를 발급하고 iOS는 Keychain에 저장한다.
+- 액세스 JWT는 `HS256`, issuer `itkerus-api`, audience `itkerus-ios`를 사용한다. 비밀키와 만료 초는 각각 `JWT_ACCESS_SECRET`, `JWT_ACCESS_EXPIRES_IN_SECONDS` 환경변수로만 주입한다.
+- 인증 API는 `Authorization: Bearer <token>`을 사용하고 검증된 `sub`를 요청의 사용자 ID로 전달한다.
+- 토큰 없음은 `AUTH_TOKEN_MISSING`, 변조·형식·claim 오류는 `AUTH_TOKEN_INVALID`, 만료는 `AUTH_TOKEN_EXPIRED` 코드의 401을 반환한다.
+- 현재는 액세스 토큰 기반만 구현하며 refresh token과 강제 세션 폐기는 로그인·로그아웃 정책을 확정할 때 추가한다.
 - 신규 사용자는 로그인 뒤 닉네임·주 역할·보조 역할을 저장해야 가입 완료 상태가 된다.
 - 프로젝트 수정·삭제는 작성자만 가능하다.
 - 노트 수정·삭제는 노트 작성자만 가능하다.

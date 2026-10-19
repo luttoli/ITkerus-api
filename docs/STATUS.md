@@ -8,7 +8,7 @@
 - 작업 PC: 맥북
 - 브랜치: `main`
 - 원격 저장소: `github.com/luttoli/ITkerus-api`
-- 마지막 커밋: `19c3492 [feat] [docs] 서버 설계와 전체 구현 체크리스트 정리 / 개발 DB 연결과 health 검증 구성 / 2.0.22`
+- 마지막 커밋: `0ae02d2 [feat] 사용자 계정과 역할 최초 스키마 구축 / 2.0.22`
 - 앱 공개 버전: `2.0.22`
 - 서버 패키지 버전: `0.0.1`
 
@@ -26,6 +26,10 @@
 - [x] 온보딩 전 사용자와 가입 완료 상태를 구분하는 `isOnboardingCompleted`
 - [x] 실제 테이블·컬럼의 한국어 Comment 자동 적용과 누락 검사 명령
 - [x] 첫 개발 마이그레이션 `20261019162754_add_user_accounts_and_roles`
+- [x] 자체 액세스 JWT 발급·검증 서비스와 개발용 무작위 비밀키
+- [x] Bearer 토큰 공통 `AccessTokenGuard`와 `CurrentUserId` 데코레이터
+- [x] 토큰 누락·변조·만료의 안정적인 401 오류 코드
+- [x] JWT 비밀키 최소 32자와 양의 정수 만료 시간 시작 검증
 
 ## 3. 검증 상태
 
@@ -36,7 +40,9 @@
 - 닉네임, 제공자 식별자, 사용자별 제공자, 사용자별 보조 역할 고유 인덱스
 - 사용자 관계의 외래키와 `ON DELETE CASCADE`
 - `npm run build`
-- `npm test -- --runInBand` 2개 통과
+- ESLint 오류 0개
+- `npm test -- --runInBand` 12개 통과
+- 실제 `.env.development`로 서버 시작과 `GET /api/v1/health` 200·DB 연결 응답
 
 사용자 확인 항목:
 
@@ -49,15 +55,15 @@
 
 ## 4. 바로 다음 작업
 
-JWT 기반 자체 세션의 공통 기반을 만든다.
+Apple·Kakao 공식 토큰 검증과 로그인 API를 만든다.
 
-- [ ] JWT 필수 환경변수와 만료 시간 검증
-- [ ] 액세스 토큰 발급·검증 서비스
-- [ ] `Authorization: Bearer` 공통 인증 Guard
-- [ ] 인증 사용자 ID를 Controller에 전달하는 데코레이터
-- [ ] 토큰 없음·변조·만료에 대한 401과 안정적인 오류 코드 테스트
+- [ ] `POST /api/v1/auth/login` 요청·응답 DTO와 런타임 검증
+- [ ] Apple 공개키·issuer·audience·만료·nonce 검증
+- [ ] Kakao 공개키·issuer·audience·만료 검증
+- [ ] 검증된 제공자 ID 기준 신규 `User`·`SocialAccount` 생성 또는 기존 사용자 조회
+- [ ] 자체 액세스 JWT와 `isOnboardingCompleted` 반환
 
-그다음 Apple·Kakao 토큰 검증과 신규·기존 사용자 분기를 연결한다.
+그다음 인증된 사용자의 온보딩 프로필 저장과 조회 API를 연결한다.
 
 ## 5. 전체 구현 체크리스트
 
@@ -74,7 +80,7 @@ JWT 기반 자체 세션의 공통 기반을 만든다.
 ### 인증과 사용자
 
 - [x] `User`, `SocialAccount`, 사용자 역할 스키마
-- [ ] JWT 발급·검증 Guard
+- [x] JWT 발급·검증 Guard
 - [ ] Apple ID 토큰 검증
 - [ ] Kakao ID 토큰 검증
 - [ ] 신규·기존 사용자 분기
@@ -143,3 +149,4 @@ JWT 기반 자체 세션의 공통 기반을 만든다.
 - 조회 수 증가와 중복 방지 정책을 확정하기 전에는 단순 요청마다 카운트를 올리지 않는다.
 - 운영 DB에는 `db push`나 `migrate dev`를 실행하지 않는다.
 - 2.0에는 프로젝트 이미지 직접 업로드를 추가하지 않는다.
+- `npm audit --omit=dev`는 Prisma 6 도구 체인의 `deepmerge-ts` 관련 high 3건을 보고한다. 자동 수정은 Prisma 7 메이저 업그레이드이므로 호환성 검증 없이 적용하지 않는다.
