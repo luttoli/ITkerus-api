@@ -4,11 +4,11 @@
 
 ## 1. 현재 기준
 
-- 확인일: 2026-10-20
+- 확인일: 2026-10-21
 - 작업 PC: 맥북
 - 브랜치: `main`
 - 원격 저장소: `github.com/luttoli/ITkerus-api`
-- 마지막 커밋: `0ae02d2 [feat] 사용자 계정과 역할 최초 스키마 구축 / 2.0.22`
+- 마지막 커밋: `8d6fa2d [feat] JWT 인증 공통 기반 구축 / 2.0.22`
 - 앱 공개 버전: `2.0.22`
 - 서버 패키지 버전: `0.0.1`
 
@@ -30,6 +30,10 @@
 - [x] Bearer 토큰 공통 `AccessTokenGuard`와 `CurrentUserId` 데코레이터
 - [x] 토큰 누락·변조·만료의 안정적인 401 오류 코드
 - [x] JWT 비밀키 최소 32자와 양의 정수 만료 시간 시작 검증
+- [x] `POST /api/v1/auth/login` 요청·응답과 전역 DTO 런타임 검증
+- [x] Apple·Kakao 공식 원격 JWKS와 issuer·audience·만료·nonce 검증
+- [x] 검증된 제공자 ID 기준 신규 사용자 생성과 기존 사용자 조회
+- [x] 로그인 응답의 자체 액세스 JWT와 신규·온보딩 완료 상태
 
 ## 3. 검증 상태
 
@@ -41,8 +45,9 @@
 - 사용자 관계의 외래키와 `ON DELETE CASCADE`
 - `npm run build`
 - ESLint 오류 0개
-- `npm test -- --runInBand` 12개 통과
+- `npm test -- --runInBand` 24개 통과
 - 실제 `.env.development`로 서버 시작과 `GET /api/v1/health` 200·DB 연결 응답
+- 실제 서버의 로그인 DTO 오류 400, 변조된 Apple 토큰 401, Kakao 설정 누락 503 응답
 
 사용자 확인 항목:
 
@@ -52,18 +57,20 @@
 
 - Mac mini 운영 컨테이너와 `itkerus_prod` 연결
 - 운영 환경의 `migrate deploy`와 Comment 명령
+- 실제 Apple ID 토큰으로 신규·기존 사용자 로그인과 DB 저장
+- Kakao Developers 앱 키 등록·OpenID Connect 활성화 후 실제 Kakao ID 토큰 로그인
 
 ## 4. 바로 다음 작업
 
-Apple·Kakao 공식 토큰 검증과 로그인 API를 만든다.
+인증된 사용자의 온보딩 프로필 저장과 내 프로필 조회 API를 만든다.
 
-- [ ] `POST /api/v1/auth/login` 요청·응답 DTO와 런타임 검증
-- [ ] Apple 공개키·issuer·audience·만료·nonce 검증
-- [ ] Kakao 공개키·issuer·audience·만료 검증
-- [ ] 검증된 제공자 ID 기준 신규 `User`·`SocialAccount` 생성 또는 기존 사용자 조회
-- [ ] 자체 액세스 JWT와 `isOnboardingCompleted` 반환
+- [ ] `GET /api/v1/users/me` 인증 사용자 프로필 응답
+- [ ] `PATCH /api/v1/users/me/profile` 요청 DTO와 2~10자 닉네임·60자 소개 검증
+- [ ] 주 역할 필수, 보조 역할 최대 2개와 주 역할 중복 금지 검증
+- [ ] 닉네임 중복 409 안정적인 오류 코드
+- [ ] 프로필과 보조 역할 트랜잭션 저장 후 온보딩 완료 처리
 
-그다음 인증된 사용자의 온보딩 프로필 저장과 조회 API를 연결한다.
+그다음 iOS의 실제 Apple·Kakao 로그인과 온보딩 화면을 개발 API에 연결한다.
 
 ## 5. 전체 구현 체크리스트
 
@@ -81,9 +88,9 @@ Apple·Kakao 공식 토큰 검증과 로그인 API를 만든다.
 
 - [x] `User`, `SocialAccount`, 사용자 역할 스키마
 - [x] JWT 발급·검증 Guard
-- [ ] Apple ID 토큰 검증
-- [ ] Kakao ID 토큰 검증
-- [ ] 신규·기존 사용자 분기
+- [x] Apple ID 토큰 검증
+- [x] Kakao ID 토큰 검증
+- [x] 신규·기존 사용자 분기
 - [ ] 닉네임·소개·주 역할·보조 역할 저장
 - [ ] 내 프로필·공개 프로필 조회
 - [ ] 로그아웃과 회원탈퇴
@@ -150,3 +157,4 @@ Apple·Kakao 공식 토큰 검증과 로그인 API를 만든다.
 - 운영 DB에는 `db push`나 `migrate dev`를 실행하지 않는다.
 - 2.0에는 프로젝트 이미지 직접 업로드를 추가하지 않는다.
 - `npm audit --omit=dev`는 Prisma 6 도구 체인의 `deepmerge-ts` 관련 high 3건을 보고한다. 자동 수정은 Prisma 7 메이저 업그레이드이므로 호환성 검증 없이 적용하지 않는다.
+- Apple 성공 로그인은 실제 Sign in with Apple capability와 기기 토큰이 필요하고, Kakao 성공 로그인은 Kakao Developers 앱 키와 OpenID Connect 설정이 필요하다. 현재 자동 테스트는 서명 검증 이후 claim 처리와 로그인 분기를 mock으로 검증한다.

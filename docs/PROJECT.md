@@ -131,6 +131,14 @@ Prisma의 개발 마이그레이션은 고정된 `itkerus_dev_shadow`를 변경 
 - `GET /users/:id`
 - `DELETE /users/me`
 
+`POST /auth/login` 요청:
+
+- `provider`: `APPLE` 또는 `KAKAO`
+- `identityToken`: 각 제공자가 발급한 OIDC ID 토큰
+- `nonce`: 로그인 요청에서 사용한 16~256자의 원본 난수. Apple은 서버가 SHA-256한 값과 토큰 claim을 비교하고 Kakao는 원문과 비교한다.
+
+로그인 성공 응답은 `accessToken`, `tokenType`, `expiresInSeconds`와 사용자 `id`, `isNewUser`, `isOnboardingCompleted`만 반환한다. 이메일, 제공자 사용자 ID와 외부 토큰은 응답에 포함하지 않는다.
+
 ### 프로젝트
 
 - `GET /projects`
@@ -163,6 +171,10 @@ Prisma의 개발 마이그레이션은 고정된 `itkerus_dev_shadow`를 변경 
 ## 5. 인증과 권한
 
 - Apple과 Kakao 토큰은 공식 공개키, issuer, audience, 만료와 nonce를 서버가 검증한다.
+- Apple은 `https://appleid.apple.com/auth/keys`, issuer `https://appleid.apple.com`, `APPLE_CLIENT_ID` audience를 사용한다.
+- Kakao는 `https://kauth.kakao.com/.well-known/jwks.json`, issuer `https://kauth.kakao.com`, `KAKAO_APP_KEY` audience를 사용한다. Kakao Developers에서 OpenID Connect를 활성화해야 ID 토큰이 발급된다.
+- 공개키는 JOSE 원격 JWKS 캐시를 사용하고 5초 안에 가져오지 못하면 `AUTH_PROVIDER_UNAVAILABLE` 503을 반환한다.
+- 제공자 설정 누락은 `AUTH_PROVIDER_NOT_CONFIGURED` 503, 서명·issuer·audience·만료·nonce 오류는 `AUTH_PROVIDER_TOKEN_INVALID` 401을 반환한다.
 - 검증 성공 후 자체 액세스 JWT를 발급하고 iOS는 Keychain에 저장한다.
 - 액세스 JWT는 `HS256`, issuer `itkerus-api`, audience `itkerus-ios`를 사용한다. 비밀키와 만료 초는 각각 `JWT_ACCESS_SECRET`, `JWT_ACCESS_EXPIRES_IN_SECONDS` 환경변수로만 주입한다.
 - 인증 API는 `Authorization: Bearer <token>`을 사용하고 검증된 `sub`를 요청의 사용자 ID로 전달한다.
