@@ -10,6 +10,7 @@ export const AuthErrorCode = {
   providerTokenInvalid: 'AUTH_PROVIDER_TOKEN_INVALID',
   providerNotConfigured: 'AUTH_PROVIDER_NOT_CONFIGURED',
   providerUnavailable: 'AUTH_PROVIDER_UNAVAILABLE',
+  userNotFound: 'AUTH_USER_NOT_FOUND',
 } as const;
 
 export type AuthErrorCodeValue =

@@ -139,6 +139,17 @@ Prisma의 개발 마이그레이션은 고정된 `itkerus_dev_shadow`를 변경 
 
 로그인 성공 응답은 `accessToken`, `tokenType`, `expiresInSeconds`와 사용자 `id`, `isNewUser`, `isOnboardingCompleted`만 반환한다. 이메일, 제공자 사용자 ID와 외부 토큰은 응답에 포함하지 않는다.
 
+`GET /users/me`는 인증 사용자의 `id`, 닉네임, 소개, 주 역할, 보조 역할 배열과 온보딩 완료 여부를 반환한다. 온보딩 전에는 닉네임과 주 역할이 `null`일 수 있다.
+
+`PATCH /users/me/profile` 요청:
+
+- `nickname`: 앞뒤 공백 제거 후 2~10자
+- `introduction`: 선택값, 앞뒤 공백 제거 후 최대 60자. 빈 문자열은 `null`로 저장
+- `primaryRole`: 역할 enum 1개
+- `secondaryRoles`: 중복 없는 역할 enum 배열, 최대 2개이며 주 역할과 중복 불가
+
+프로필과 보조 역할은 한 번의 원자적 쓰기로 교체하고 성공 시 `isOnboardingCompleted`를 `true`로 바꾼다. 닉네임 중복은 `NICKNAME_ALREADY_IN_USE` 409, 주·보조 역할 중복은 `PROFILE_ROLE_CONFLICT` 400을 반환한다.
+
 ### 프로젝트
 
 - `GET /projects`
