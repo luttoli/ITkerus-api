@@ -161,6 +161,22 @@ Prisma의 개발 마이그레이션은 고정된 `itkerus_dev_shadow`를 변경 
 
 `GET /projects`는 `cursor`, `limit`, `query`, `role`, `status`, `purpose`, `sort`를 선택적으로 받는다.
 
+`POST /projects`는 완료된 프로필을 가진 Bearer 인증 사용자만 호출한다. 요청은 다음 값을 사용한다.
+
+- `title`: 앞뒤 공백 제거 후 1~50자
+- `summary`: 앞뒤 공백 제거 후 1~120자
+- `story`: 선택값, 앞뒤 공백 제거 후 최대 5000자
+- `status`: `IN_DEVELOPMENT` 또는 `RELEASED`
+- `purposes`: 중복 없는 `INTRODUCTION`, `QUESTION` 배열로 1개 이상
+- `itkerusFocus`: 선택값, 최대 150자. `QUESTION`이면 공백이 아닌 값 필수
+- `requestedRoles`: 중복 없는 역할 배열. 빈 배열은 전체 사용자를 의미
+- `links`: 최대 3개의 HTTPS 공개 링크. 한 프로젝트에서 같은 링크 종류는 한 번만 사용
+- `iconUrl`, `imageUrls`, `selectedImageUrl`: HTTPS 외부 URL만 저장
+
+`IN_DEVELOPMENT`는 링크·아이콘·외부 이미지 없이 등록하고, `RELEASED`는 공개 링크가 하나 이상 필요하다. 외부 이미지가 있으면 그 목록 안의 대표 이미지 한 개를 반드시 선택한다. 프로젝트 생성은 목적·필요 역할·링크·이미지를 한 번의 Prisma 중첩 쓰기로 저장한다. 사용자 삭제 시 프로젝트는 `RESTRICT`, 프로젝트 하위 행은 프로젝트 삭제 시 `CASCADE`를 사용하며 프로젝트 자체는 `deletedAt`을 이용한 소프트 삭제를 기준으로 한다.
+
+생성 응답은 프로젝트 본문과 목적·필요 역할·링크·이미지를 반환하며 아직 원본 모델이 없는 조회 수·잇커스 노트 수·도움 수는 각각 0으로 반환한다. 조건 오류는 `PROJECT_FOCUS_REQUIRED`, `PROJECT_RELEASE_LINK_REQUIRED`, `PROJECT_DEVELOPMENT_MEDIA_NOT_ALLOWED`, `PROJECT_SELECTED_IMAGE_REQUIRED`, `PROJECT_SELECTED_IMAGE_INVALID`, `PROJECT_LINK_TYPE_DUPLICATED`로 구분하고 미완료 프로필은 `PROJECT_PROFILE_REQUIRED` 403을 반환한다.
+
 ### 잇커스 노트
 
 - `GET /projects/:projectId/notes`

@@ -22,6 +22,22 @@ enum SocialProvider {
   KAKAO
 }
 
+enum ProjectStatus {
+  IN_DEVELOPMENT
+  RELEASED
+}
+
+enum ProjectPurpose {
+  INTRODUCTION
+  QUESTION
+}
+
+enum ProjectLinkType {
+  APP_STORE
+  GOOGLE_PLAY
+  WEB
+}
+
 model User {
   id                    String       @id @default(uuid()) @db.Char(36)
   nickname              String?      @unique @db.VarChar(10)
@@ -33,6 +49,7 @@ model User {
 
   socialAccounts SocialAccount[]
   secondaryRoles UserSecondaryRole[]
+  projectPosts   ProjectPost[]
 }
 
 model SocialAccount {
@@ -59,4 +76,77 @@ model UserSecondaryRole {
 
   @@unique([userId, role])
   @@index([userId])
+}
+
+model ProjectPost {
+  id               String        @id @default(uuid()) @db.Char(36)
+  authorId         String        @db.Char(36)
+  title            String        @db.VarChar(50)
+  summary          String        @db.VarChar(120)
+  story            String        @db.Text
+  status           ProjectStatus
+  itkerusFocus     String?       @db.VarChar(150)
+  iconUrl          String?       @db.VarChar(2048)
+  selectedImageUrl String?       @db.VarChar(2048)
+  deletedAt        DateTime?     @db.DateTime(3)
+  createdAt        DateTime      @default(now()) @db.DateTime(3)
+  updatedAt        DateTime      @updatedAt @db.DateTime(3)
+
+  author         User                   @relation(fields: [authorId], references: [id], onDelete: Restrict)
+  purposes       ProjectPostPurpose[]
+  requestedRoles ProjectRequestedRole[]
+  links          ProjectLink[]
+  images         ProjectImage[]
+
+  @@index([authorId, createdAt])
+  @@index([status, deletedAt, createdAt])
+}
+
+model ProjectPostPurpose {
+  projectId String         @db.Char(36)
+  purpose   ProjectPurpose
+  createdAt DateTime       @default(now()) @db.DateTime(3)
+
+  project ProjectPost @relation(fields: [projectId], references: [id], onDelete: Cascade)
+
+  @@id([projectId, purpose])
+  @@index([purpose, projectId])
+}
+
+model ProjectRequestedRole {
+  projectId String      @db.Char(36)
+  role      ITkerusRole
+  createdAt DateTime    @default(now()) @db.DateTime(3)
+
+  project ProjectPost @relation(fields: [projectId], references: [id], onDelete: Cascade)
+
+  @@id([projectId, role])
+  @@index([role, projectId])
+}
+
+model ProjectLink {
+  id        String          @id @default(uuid()) @db.Char(36)
+  projectId String          @db.Char(36)
+  type      ProjectLinkType
+  url       String          @db.VarChar(2048)
+  position  Int             @db.UnsignedSmallInt
+  createdAt DateTime        @default(now()) @db.DateTime(3)
+
+  project ProjectPost @relation(fields: [projectId], references: [id], onDelete: Cascade)
+
+  @@unique([projectId, type])
+  @@index([projectId, position])
+}
+
+model ProjectImage {
+  id        String   @id @default(uuid()) @db.Char(36)
+  projectId String   @db.Char(36)
+  url       String   @db.VarChar(2048)
+  position  Int      @db.UnsignedSmallInt
+  createdAt DateTime @default(now()) @db.DateTime(3)
+
+  project ProjectPost @relation(fields: [projectId], references: [id], onDelete: Cascade)
+
+  @@unique([projectId, url])
+  @@index([projectId, position])
 }

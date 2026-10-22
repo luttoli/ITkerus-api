@@ -40,6 +40,60 @@ const descriptions: Record<string, TableDescription> = {
       createdAt: '보조 역할 생성 일시(UTC)',
     },
   },
+  ProjectPost: {
+    description: '사용자가 공개한 프로젝트 소개와 고민',
+    columns: {
+      id: '프로젝트 공개 UUID',
+      authorId: '프로젝트를 작성한 User.id',
+      title: '최대 50자의 프로젝트 이름',
+      summary: '최대 120자의 한 줄 소개',
+      story: '최대 5000자의 프로젝트 이야기',
+      status: '프로젝트 상태(IN_DEVELOPMENT 또는 RELEASED)',
+      itkerusFocus: '최대 150자의 집중 피드백 요청 내용',
+      iconUrl: '출시 서비스에서 가져온 외부 아이콘 HTTPS URL',
+      selectedImageUrl: '대표로 선택한 외부 이미지 HTTPS URL',
+      deletedAt: '소프트 삭제 일시(UTC), 미삭제 시 NULL',
+      createdAt: '프로젝트 생성 일시(UTC)',
+      updatedAt: '프로젝트 마지막 수정 일시(UTC)',
+    },
+  },
+  ProjectPostPurpose: {
+    description: '프로젝트가 소개 또는 고민 공유인지 나타내는 목적',
+    columns: {
+      projectId: '목적이 연결된 ProjectPost.id',
+      purpose: '프로젝트 목적(INTRODUCTION 또는 QUESTION)',
+      createdAt: '프로젝트 목적 생성 일시(UTC)',
+    },
+  },
+  ProjectRequestedRole: {
+    description: '프로젝트 작성자가 의견을 요청한 사용자 역할',
+    columns: {
+      projectId: '요청 역할이 연결된 ProjectPost.id',
+      role: '의견을 요청한 ITkerus 역할',
+      createdAt: '요청 역할 생성 일시(UTC)',
+    },
+  },
+  ProjectLink: {
+    description: '출시 프로젝트의 App Store, Google Play 또는 Web 공개 링크',
+    columns: {
+      id: '프로젝트 링크 공개 UUID',
+      projectId: '링크가 연결된 ProjectPost.id',
+      type: '공개 링크 종류(APP_STORE, GOOGLE_PLAY 또는 WEB)',
+      url: '사용자가 접근할 수 있는 공개 HTTPS URL',
+      position: '프로젝트 안에서 링크를 표시할 순서',
+      createdAt: '프로젝트 링크 생성 일시(UTC)',
+    },
+  },
+  ProjectImage: {
+    description: '출시 프로젝트에서 선택 가능한 외부 소개 이미지',
+    columns: {
+      id: '프로젝트 이미지 공개 UUID',
+      projectId: '이미지가 연결된 ProjectPost.id',
+      url: '스토어 등 외부 원본의 HTTPS 이미지 URL',
+      position: '프로젝트 안에서 이미지를 표시할 순서',
+      createdAt: '프로젝트 이미지 생성 일시(UTC)',
+    },
+  },
 };
 
 async function main() {
