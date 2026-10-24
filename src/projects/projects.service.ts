@@ -4,8 +4,12 @@ import { AuthErrorCode, createUnauthorizedException } from '../auth/auth-error';
 import { PrismaService } from '../prisma/prisma.service';
 import { CreateProjectDto } from './dto/create-project.dto';
 import { ProjectResponseDto } from './dto/project-response.dto';
+import { UpdateProjectDto } from './dto/update-project.dto';
 import {
   createProjectBadRequestException,
+  createProjectDeletedException,
+  createProjectForbiddenException,
+  createProjectNotFoundException,
   createProjectProfileRequiredException,
   ProjectsErrorCode,
 } from './projects-error';
@@ -20,6 +24,7 @@ const projectSelect = {
   itkerusFocus: true,
   iconUrl: true,
   selectedImageUrl: true,
+  deletedAt: true,
   createdAt: true,
   updatedAt: true,
   purposes: {
@@ -43,6 +48,20 @@ const projectSelect = {
 type ProjectResult = Prisma.ProjectPostGetPayload<{
   select: typeof projectSelect;
 }>;
+
+type ProjectWriteValues = {
+  title: string;
+  summary: string;
+  story?: string;
+  status: ProjectStatus;
+  purposes: ProjectPurpose[];
+  itkerusFocus?: string | null;
+  requestedRoles: CreateProjectDto['requestedRoles'];
+  iconUrl?: string | null;
+  links: CreateProjectDto['links'];
+  imageUrls: string[];
+  selectedImageUrl?: string | null;
+};
 
 @Injectable()
 export class ProjectsService {
@@ -105,7 +124,159 @@ export class ProjectsService {
     return this.toResponse(project);
   }
 
-  private validateBusinessRules(request: CreateProjectDto) {
+  async updateProject(
+    userId: string,
+    projectId: string,
+    request: UpdateProjectDto,
+  ): Promise<ProjectResponseDto> {
+    if (Object.keys(request).length === 0) {
+      throw createProjectBadRequestException(
+        ProjectsErrorCode.updateEmpty,
+        '수정할 프로젝트 정보를 하나 이상 보내주세요.',
+      );
+    }
+
+    const current = await this.findOwnedActiveProject(userId, projectId);
+    const values = this.mergeProjectValues(current, request);
+    this.validateBusinessRules(values);
+
+    try {
+      const project = await this.prisma.projectPost.update({
+        where: {
+          id: projectId,
+          authorId: userId,
+          deletedAt: null,
+        },
+        data: {
+          title: values.title,
+          summary: values.summary,
+          story: values.story || '',
+          status: values.status,
+          itkerusFocus: values.itkerusFocus || null,
+          iconUrl: values.iconUrl ?? null,
+          selectedImageUrl: values.selectedImageUrl ?? null,
+          purposes: {
+            deleteMany: {},
+            create: values.purposes.map((purpose) => ({ purpose })),
+          },
+          requestedRoles: {
+            deleteMany: {},
+            create: values.requestedRoles.map((role) => ({ role })),
+          },
+          links: {
+            deleteMany: {},
+            create: values.links.map((link, position) => ({
+              ...link,
+              position,
+            })),
+          },
+          images: {
+            deleteMany: {},
+            create: values.imageUrls.map((url, position) => ({
+              url,
+              position,
+            })),
+          },
+        },
+        select: projectSelect,
+      });
+
+      return this.toResponse(project);
+    } catch (error) {
+      if (this.isRecordNotFoundError(error)) {
+        throw createProjectDeletedException();
+      }
+
+      throw error;
+    }
+  }
+
+  async deleteProject(userId: string, projectId: string): Promise<void> {
+    await this.findOwnedActiveProject(userId, projectId);
+
+    try {
+      await this.prisma.projectPost.update({
+        where: {
+          id: projectId,
+          authorId: userId,
+          deletedAt: null,
+        },
+        data: { deletedAt: new Date() },
+        select: { id: true },
+      });
+    } catch (error) {
+      if (this.isRecordNotFoundError(error)) {
+        throw createProjectDeletedException();
+      }
+
+      throw error;
+    }
+  }
+
+  private async findOwnedActiveProject(
+    userId: string,
+    projectId: string,
+  ): Promise<ProjectResult> {
+    const project = await this.prisma.projectPost.findUnique({
+      where: { id: projectId },
+      select: projectSelect,
+    });
+
+    if (!project) {
+      throw createProjectNotFoundException();
+    }
+
+    if (project.authorId !== userId) {
+      throw createProjectForbiddenException();
+    }
+
+    if (project.deletedAt) {
+      throw createProjectDeletedException();
+    }
+
+    return project;
+  }
+
+  private mergeProjectValues(
+    current: ProjectResult,
+    request: UpdateProjectDto,
+  ): ProjectWriteValues {
+    return {
+      title: request.title ?? current.title,
+      summary: request.summary ?? current.summary,
+      story: request.story ?? current.story,
+      status: request.status ?? current.status,
+      purposes:
+        request.purposes ?? current.purposes.map(({ purpose }) => purpose),
+      itkerusFocus:
+        request.itkerusFocus === undefined
+          ? current.itkerusFocus
+          : request.itkerusFocus,
+      requestedRoles:
+        request.requestedRoles ??
+        current.requestedRoles.map(({ role }) => role),
+      iconUrl:
+        request.iconUrl === undefined ? current.iconUrl : request.iconUrl,
+      links:
+        request.links ?? current.links.map(({ type, url }) => ({ type, url })),
+      imageUrls: request.imageUrls ?? current.images.map(({ url }) => url),
+      selectedImageUrl:
+        request.selectedImageUrl === undefined
+          ? current.selectedImageUrl
+          : request.selectedImageUrl,
+    };
+  }
+
+  private isRecordNotFoundError(
+    error: unknown,
+  ): error is Prisma.PrismaClientKnownRequestError {
+    return (
+      error instanceof Prisma.PrismaClientKnownRequestError &&
+      error.code === 'P2025'
+    );
+  }
+
+  private validateBusinessRules(request: ProjectWriteValues) {
     const focus = request.itkerusFocus?.trim();
     if (request.purposes.includes(ProjectPurpose.QUESTION) && !focus) {
       throw createProjectBadRequestException(

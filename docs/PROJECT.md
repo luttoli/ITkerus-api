@@ -177,6 +177,10 @@ Prisma의 개발 마이그레이션은 고정된 `itkerus_dev_shadow`를 변경 
 
 생성 응답은 프로젝트 본문과 목적·필요 역할·링크·이미지를 반환하며 아직 원본 모델이 없는 조회 수·잇커스 노트 수·도움 수는 각각 0으로 반환한다. 조건 오류는 `PROJECT_FOCUS_REQUIRED`, `PROJECT_RELEASE_LINK_REQUIRED`, `PROJECT_DEVELOPMENT_MEDIA_NOT_ALLOWED`, `PROJECT_SELECTED_IMAGE_REQUIRED`, `PROJECT_SELECTED_IMAGE_INVALID`, `PROJECT_LINK_TYPE_DUPLICATED`로 구분하고 미완료 프로필은 `PROJECT_PROFILE_REQUIRED` 403을 반환한다.
 
+`PATCH /projects/:id`는 `POST /projects`의 필드를 모두 선택값으로 받는다. 배열 필드를 보내면 해당 목적·필요 역할·링크·이미지 목록 전체를 교체하고, `itkerusFocus`, `iconUrl`, `selectedImageUrl`에 `null`을 보내면 값을 지운다. 서버는 요청 필드를 저장값과 합친 최종 상태에 생성과 같은 조건을 적용하며 빈 요청은 `PROJECT_UPDATE_EMPTY` 400으로 거부한다. 하위 관계 교체는 프로젝트 본문 수정과 같은 Prisma 중첩 쓰기에서 원자적으로 처리한다.
+
+`DELETE /projects/:id`는 실제 행을 지우지 않고 `deletedAt`을 기록한 뒤 본문 없는 204를 반환한다. 수정과 삭제는 작성자만 가능하다. 프로젝트가 없으면 `PROJECT_NOT_FOUND` 404, 다른 사용자의 프로젝트면 `PROJECT_FORBIDDEN` 403, 이미 삭제됐거나 변경 도중 삭제됐으면 `PROJECT_DELETED` 410을 반환한다.
+
 ### 잇커스 노트
 
 - `GET /projects/:projectId/notes`
