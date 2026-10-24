@@ -17,6 +17,7 @@ export const ProjectsErrorCode = {
   notFound: 'PROJECT_NOT_FOUND',
   forbidden: 'PROJECT_FORBIDDEN',
   deleted: 'PROJECT_DELETED',
+  cursorInvalid: 'PROJECT_CURSOR_INVALID',
 } as const;
 
 export function createProjectBadRequestException(

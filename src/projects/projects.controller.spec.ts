@@ -10,11 +10,13 @@ import { ProjectsController } from './projects.controller';
 import { ProjectsService } from './projects.service';
 
 describe('ProjectsController', () => {
+  const getProjects = jest.fn();
   const getProject = jest.fn();
   const createProject = jest.fn();
   const updateProject = jest.fn();
   const deleteProject = jest.fn();
   const service = {
+    getProjects,
     getProject,
     createProject,
     updateProject,
@@ -41,6 +43,16 @@ describe('ProjectsController', () => {
     jest.clearAllMocks();
   });
 
+  it('passes public list query values to the service', async () => {
+    const response = { projects: [], nextCursor: null };
+    getProjects.mockResolvedValue(response);
+
+    await expect(controller.getProjects({ limit: 20 })).resolves.toEqual(
+      response,
+    );
+    expect(getProjects).toHaveBeenCalledWith({ limit: 20 });
+  });
+
   it('passes a public project ID to the detail service', async () => {
     const response = { id: 'project-id', title: '브랜드킷' };
     getProject.mockResolvedValue(response);
@@ -52,6 +64,7 @@ describe('ProjectsController', () => {
   });
 
   it('keeps detail public and protects every write endpoint', () => {
+    expect(hasGuard('getProjects')).toBe(false);
     expect(hasGuard('getProject')).toBe(false);
     expect(hasGuard('createProject')).toBe(true);
     expect(hasGuard('updateProject')).toBe(true);

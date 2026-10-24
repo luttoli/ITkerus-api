@@ -99,6 +99,7 @@ model ProjectPost {
   images         ProjectImage[]
 
   @@index([authorId, createdAt])
+  @@index([deletedAt, createdAt, id])
   @@index([status, deletedAt, createdAt])
 }
 

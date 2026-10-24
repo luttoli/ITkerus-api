@@ -3,11 +3,17 @@ import { Prisma, ProjectPurpose, ProjectStatus } from '@prisma/client';
 import { AuthErrorCode, createUnauthorizedException } from '../auth/auth-error';
 import { PrismaService } from '../prisma/prisma.service';
 import { CreateProjectDto } from './dto/create-project.dto';
+import { GetProjectsQueryDto } from './dto/get-projects-query.dto';
+import {
+  ProjectListItemResponseDto,
+  ProjectListResponseDto,
+} from './dto/project-list-response.dto';
 import {
   ProjectDetailResponseDto,
   ProjectResponseDto,
 } from './dto/project-response.dto';
 import { UpdateProjectDto } from './dto/update-project.dto';
+import { decodeProjectCursor, encodeProjectCursor } from './project-cursor';
 import {
   createProjectBadRequestException,
   createProjectDeletedException,
@@ -71,6 +77,44 @@ type ProjectDetailResult = Prisma.ProjectPostGetPayload<{
   select: typeof projectDetailSelect;
 }>;
 
+const projectListSelect = {
+  id: true,
+  title: true,
+  summary: true,
+  status: true,
+  itkerusFocus: true,
+  iconUrl: true,
+  selectedImageUrl: true,
+  createdAt: true,
+  purposes: {
+    orderBy: { createdAt: 'asc' as const },
+    select: { purpose: true },
+  },
+  requestedRoles: {
+    orderBy: { createdAt: 'asc' as const },
+    select: { role: true },
+  },
+  links: {
+    orderBy: { position: 'asc' as const },
+    select: { type: true },
+  },
+  author: {
+    select: {
+      id: true,
+      nickname: true,
+      primaryRole: true,
+      secondaryRoles: {
+        orderBy: { createdAt: 'asc' as const },
+        select: { role: true },
+      },
+    },
+  },
+} satisfies Prisma.ProjectPostSelect;
+
+type ProjectListResult = Prisma.ProjectPostGetPayload<{
+  select: typeof projectListSelect;
+}>;
+
 type ProjectWriteValues = {
   title: string;
   summary: string;
@@ -88,6 +132,59 @@ type ProjectWriteValues = {
 @Injectable()
 export class ProjectsService {
   constructor(private readonly prisma: PrismaService) {}
+
+  async getProjects(
+    query: GetProjectsQueryDto,
+  ): Promise<ProjectListResponseDto> {
+    const cursor = query.cursor ? decodeProjectCursor(query.cursor) : undefined;
+    const projects = await this.prisma.projectPost.findMany({
+      where: {
+        deletedAt: null,
+        author: {
+          is: {
+            isOnboardingCompleted: true,
+            nickname: { not: null },
+            primaryRole: { not: null },
+          },
+        },
+        ...(cursor
+          ? {
+              OR: [
+                { createdAt: { lt: cursor.createdAt } },
+                {
+                  createdAt: cursor.createdAt,
+                  id: { lt: cursor.id },
+                },
+              ],
+            }
+          : {}),
+      },
+      orderBy: [{ createdAt: 'desc' }, { id: 'desc' }],
+      take: query.limit + 1,
+      select: projectListSelect,
+    });
+    const hasNextPage = projects.length > query.limit;
+    const page = hasNextPage ? projects.slice(0, query.limit) : projects;
+    const items: ProjectListItemResponseDto[] = [];
+
+    for (const project of page) {
+      const item = this.toListItemResponse(project);
+      if (item) {
+        items.push(item);
+      }
+    }
+
+    const lastProject = page.at(-1);
+    const nextCursor =
+      hasNextPage && lastProject
+        ? encodeProjectCursor({
+            createdAt: lastProject.createdAt,
+            id: lastProject.id,
+          })
+        : null;
+
+    return { projects: items, nextCursor };
+  }
 
   async getProject(projectId: string): Promise<ProjectDetailResponseDto> {
     const project = await this.prisma.projectPost.findFirst({
@@ -407,6 +504,37 @@ export class ProjectsService {
 
     return {
       ...response,
+      author: {
+        id: project.author.id,
+        nickname,
+        primaryRole,
+        secondaryRoles: project.author.secondaryRoles.map(({ role }) => role),
+      },
+    };
+  }
+
+  private toListItemResponse(
+    project: ProjectListResult,
+  ): ProjectListItemResponseDto | null {
+    const { nickname, primaryRole } = project.author;
+    if (!nickname || !primaryRole) {
+      return null;
+    }
+
+    return {
+      id: project.id,
+      title: project.title,
+      summary: project.summary,
+      status: project.status,
+      purposes: project.purposes.map(({ purpose }) => purpose),
+      itkerusFocus: project.itkerusFocus,
+      requestedRoles: project.requestedRoles.map(({ role }) => role),
+      iconUrl: project.iconUrl,
+      selectedImageUrl: project.selectedImageUrl,
+      linkTypes: project.links.map(({ type }) => type),
+      itkerusNoteCount: 0,
+      helpedCount: 0,
+      createdAt: project.createdAt,
       author: {
         id: project.author.id,
         nickname,
