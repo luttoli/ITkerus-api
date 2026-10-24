@@ -81,7 +81,7 @@ Prisma의 개발 마이그레이션은 고정된 `itkerus_dev_shadow`를 변경 
 - 링크 종류: `APP_STORE`, `GOOGLE_PLAY`, `WEB`
 - 외부 아이콘 URL, 외부 이미지 URL 목록과 선택한 대표 이미지 URL 저장
 - 개발 중 프로젝트는 외부 이미지 없이 프로젝트 ID 기반 추상 마크 사용
-- 삭제는 초기 구현에서 즉시 삭제하지 않고 `deletedAt`을 사용하는 소프트 삭제를 기본으로 검토
+- 삭제는 즉시 삭제하지 않고 `deletedAt`을 사용하는 소프트 삭제
 
 ### ITkerusNote
 
@@ -89,7 +89,8 @@ Prisma의 개발 마이그레이션은 고정된 `itkerus_dev_shadow`를 변경 
 - `직접 써봤어요` 여부
 - `도움됐어요`는 프로젝트 작성자만 표시·취소 가능
 - 작성자 본인의 프로젝트에는 노트를 남길 수 없음
-- 한 사용자가 같은 프로젝트에 작성할 수 있는 노트 개수는 API 구현 전에 최종 확정
+- 한 사용자는 같은 프로젝트에 하나의 노트만 작성할 수 있으며 `(projectId, authorId)` 고유 제약으로 보장
+- 노트는 `deletedAt`을 사용하는 소프트 삭제를 적용하고, 삭제 뒤 다시 작성하면 기존 행의 내용·역할·직접 사용 여부를 갱신하고 도움 표시를 초기화해 복원
 
 ### 집계와 파생 값
 
@@ -171,9 +172,9 @@ Prisma의 개발 마이그레이션은 고정된 `itkerus_dev_shadow`를 변경 
 - `purpose`: `INTRODUCTION` 또는 `QUESTION`
 - `sort`: `LATEST`, `ITKERUS_NOTES`, `HELPFUL`. 기본값 `LATEST`
 
-검색·필터는 MariaDB 쿼리에서 함께 적용한다. 커서는 검색어·역할·상태·목적·정렬 범위에 묶이며 다른 조건으로 재사용하면 `PROJECT_CURSOR_INVALID` 400을 반환한다. 잇커스 노트 모델이 생기기 전에는 노트 수와 도움 수가 모두 0이므로 `ITKERUS_NOTES`와 `HELPFUL`도 `createdAt DESC, id DESC`로 안정 정렬하고, 실제 집계 정렬은 노트 스키마 작업에서 연결한다.
+검색·필터는 MariaDB 쿼리에서 함께 적용한다. 커서는 검색어·역할·상태·목적·정렬 범위에 묶이며 다른 조건으로 재사용하면 `PROJECT_CURSOR_INVALID` 400을 반환한다. 노트 생성 API만 연결된 현재 단계에서는 목록의 노트 수와 도움 수를 0으로 반환하므로 `ITKERUS_NOTES`와 `HELPFUL`도 `createdAt DESC, id DESC`로 안정 정렬한다. 실제 집계 정렬은 노트 목록·도움 API 작업에서 연결한다.
 
-`GET /projects/:id`는 인증 없이 조회할 수 있는 공개 상세 API다. 프로젝트 본문·상태·목적·FOCUS·필요 역할·링크·외부 이미지와 작성자의 공개 ID·닉네임·주 역할·보조 역할을 반환한다. 소프트 삭제된 프로젝트와 정상적인 가입 완료 프로필이 없는 비정상 프로젝트는 공개하지 않고 `PROJECT_NOT_FOUND` 404로 처리한다. 잇커스 노트 모델이 생기기 전까지 `viewCount`, `itkerusNoteCount`, `helpedCount`는 0으로 반환하며 상세 조회만으로 조회 수를 올리지 않는다.
+`GET /projects/:id`는 인증 없이 조회할 수 있는 공개 상세 API다. 프로젝트 본문·상태·목적·FOCUS·필요 역할·링크·외부 이미지와 작성자의 공개 ID·닉네임·주 역할·보조 역할을 반환한다. 소프트 삭제된 프로젝트와 정상적인 가입 완료 프로필이 없는 비정상 프로젝트는 공개하지 않고 `PROJECT_NOT_FOUND` 404로 처리한다. 노트 집계 조회를 연결하기 전까지 `viewCount`, `itkerusNoteCount`, `helpedCount`는 0으로 반환하며 상세 조회만으로 조회 수를 올리지 않는다.
 
 `POST /projects`는 완료된 프로필을 가진 Bearer 인증 사용자만 호출한다. 요청은 다음 값을 사용한다.
 
@@ -203,6 +204,8 @@ Prisma의 개발 마이그레이션은 고정된 `itkerus_dev_shadow`를 변경 
 - `DELETE /projects/:projectId/notes/:noteId`
 - `PUT /projects/:projectId/notes/:noteId/helpful`
 - `DELETE /projects/:projectId/notes/:noteId/helpful`
+
+`POST /projects/:projectId/notes`는 가입을 완료한 Bearer 인증 사용자가 호출한다. 요청은 앞뒤 공백을 제거한 `content` 1~600자와 Boolean `didTryProject`를 사용한다. 서버는 현재 프로필의 주 역할을 `authorRole`에 작성 당시 값으로 저장하고 `isMarkedHelpful`는 false로 시작한다. 삭제한 노트를 다시 작성하면 같은 행을 새 요청값으로 복원한다. 삭제됐거나 없는 프로젝트는 `PROJECT_NOT_FOUND` 404, 미완료 프로필은 `NOTE_PROFILE_REQUIRED` 403, 자신의 프로젝트는 `NOTE_OWN_PROJECT_FORBIDDEN` 403, 활성 노트가 이미 있으면 `NOTE_ALREADY_EXISTS` 409를 반환한다.
 
 ### My·Spotlight
 
@@ -322,7 +325,6 @@ Prisma의 개발 마이그레이션은 고정된 `itkerus_dev_shadow`를 변경 
 
 ## 9. 아직 확정할 항목
 
-- 한 사용자가 같은 프로젝트에 남길 수 있는 잇커스 노트 개수
 - 조회 수 증가 기준과 중복·봇 요청 처리
 - 열정 불꽃의 최종 명칭과 계산 규칙
 - 회원탈퇴의 유예 기간과 콘텐츠 익명화·삭제 범위

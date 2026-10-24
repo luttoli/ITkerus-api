@@ -94,6 +94,21 @@ const descriptions: Record<string, TableDescription> = {
       createdAt: '프로젝트 이미지 생성 일시(UTC)',
     },
   },
+  ITkerusNote: {
+    description: '사용자가 프로젝트를 살펴보고 남긴 잇커스 노트',
+    columns: {
+      id: '잇커스 노트 공개 UUID',
+      projectId: '노트가 작성된 ProjectPost.id',
+      authorId: '노트를 작성한 User.id',
+      authorRole: '노트 작성 당시 사용자의 주 역할',
+      content: '앞뒤 공백 제거 후 최대 600자의 의견',
+      didTryProject: '작성자가 프로젝트를 직접 사용하거나 살펴봤는지 여부',
+      isMarkedHelpful: '프로젝트 작성자가 도움됐어요로 표시했는지 여부',
+      deletedAt: '소프트 삭제 일시(UTC), 미삭제 시 NULL',
+      createdAt: '잇커스 노트 생성 일시(UTC)',
+      updatedAt: '잇커스 노트 마지막 수정 일시(UTC)',
+    },
+  },
 };
 
 async function main() {

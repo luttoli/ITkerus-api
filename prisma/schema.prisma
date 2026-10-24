@@ -50,6 +50,7 @@ model User {
   socialAccounts SocialAccount[]
   secondaryRoles UserSecondaryRole[]
   projectPosts   ProjectPost[]
+  itkerusNotes   ITkerusNote[]
 }
 
 model SocialAccount {
@@ -97,6 +98,7 @@ model ProjectPost {
   requestedRoles ProjectRequestedRole[]
   links          ProjectLink[]
   images         ProjectImage[]
+  notes          ITkerusNote[]
 
   @@index([authorId, createdAt])
   @@index([deletedAt, createdAt, id])
@@ -150,4 +152,24 @@ model ProjectImage {
 
   @@unique([projectId, url])
   @@index([projectId, position])
+}
+
+model ITkerusNote {
+  id              String      @id @default(uuid()) @db.Char(36)
+  projectId       String      @db.Char(36)
+  authorId        String      @db.Char(36)
+  authorRole      ITkerusRole
+  content         String      @db.VarChar(600)
+  didTryProject   Boolean     @default(false)
+  isMarkedHelpful Boolean     @default(false)
+  deletedAt       DateTime?   @db.DateTime(3)
+  createdAt       DateTime    @default(now()) @db.DateTime(3)
+  updatedAt       DateTime    @updatedAt @db.DateTime(3)
+
+  project ProjectPost @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  author  User        @relation(fields: [authorId], references: [id], onDelete: Restrict)
+
+  @@unique([projectId, authorId])
+  @@index([projectId, deletedAt, createdAt])
+  @@index([authorId, deletedAt, createdAt])
 }
