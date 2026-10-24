@@ -7,6 +7,7 @@ import {
   ProjectStatus,
 } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
+import { ProjectListSort } from './dto/get-projects-query.dto';
 import { ProjectsService } from './projects.service';
 
 describe('ProjectsService project list', () => {
@@ -88,14 +89,88 @@ describe('ProjectsService project list', () => {
 
     expect(capturedFindManyInput?.where).toEqual(
       expect.objectContaining({
-        OR: [
-          { createdAt: { lt: new Date('2026-10-25T00:00:02.000Z') } },
+        AND: [
           {
-            createdAt: new Date('2026-10-25T00:00:02.000Z'),
-            id: { lt: projectId(2) },
+            OR: [
+              { createdAt: { lt: new Date('2026-10-25T00:00:02.000Z') } },
+              {
+                createdAt: new Date('2026-10-25T00:00:02.000Z'),
+                id: { lt: projectId(2) },
+              },
+            ],
           },
         ],
       }),
+    );
+  });
+
+  it('combines search, role, status and purpose filters in the database query', async () => {
+    findMany.mockImplementation((input: Prisma.ProjectPostFindManyArgs) => {
+      capturedFindManyInput = input;
+      return Promise.resolve([]);
+    });
+
+    await service.getProjects({
+      limit: 20,
+      query: '냉장고',
+      role: ITkerusRole.DESIGNER,
+      status: ProjectStatus.RELEASED,
+      purpose: ProjectPurpose.QUESTION,
+      sort: ProjectListSort.ITKERUS_NOTES,
+    });
+
+    expect(capturedFindManyInput?.where).toEqual(
+      expect.objectContaining({
+        status: ProjectStatus.RELEASED,
+        purposes: { some: { purpose: ProjectPurpose.QUESTION } },
+        AND: [
+          {
+            OR: [
+              { title: { contains: '냉장고' } },
+              { summary: { contains: '냉장고' } },
+              {
+                author: {
+                  is: { nickname: { contains: '냉장고' } },
+                },
+              },
+            ],
+          },
+          {
+            OR: [
+              { requestedRoles: { none: {} } },
+              {
+                requestedRoles: {
+                  some: { role: ITkerusRole.DESIGNER },
+                },
+              },
+            ],
+          },
+        ],
+      }),
+    );
+    expect(capturedFindManyInput?.orderBy).toEqual([
+      { createdAt: 'desc' },
+      { id: 'desc' },
+    ]);
+  });
+
+  it('rejects a cursor reused with different filters', async () => {
+    findMany.mockResolvedValue([
+      createStoredProject(3),
+      createStoredProject(2),
+    ]);
+    const firstPage = await service.getProjects({
+      limit: 1,
+      role: ITkerusRole.DESIGNER,
+    });
+
+    await expectHttpError(
+      service.getProjects({
+        limit: 1,
+        role: ITkerusRole.DEVELOPER,
+        cursor: firstPage.nextCursor ?? undefined,
+      }),
+      'PROJECT_CURSOR_INVALID',
     );
   });
 

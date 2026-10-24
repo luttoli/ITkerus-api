@@ -161,7 +161,17 @@ Prisma의 개발 마이그레이션은 고정된 `itkerus_dev_shadow`를 변경 
 
 `GET /projects`는 인증 없이 조회하는 공개 목록 API다. 현재 구현은 `cursor`와 `limit`을 선택적으로 받으며 `limit` 기본값은 20, 최댓값은 50이다. `createdAt DESC, id DESC`로 안정 정렬하고 `(deletedAt, createdAt, id)` 복합 인덱스를 사용한다. 다음 페이지 커서는 마지막 프로젝트의 생성 시각과 UUID를 Base64 URL 형식의 불투명 문자열로 묶으며 잘못된 커서는 `PROJECT_CURSOR_INVALID` 400으로 거부한다.
 
-목록 항목은 프로젝트 ID·제목·한 줄 소개·상태·목적·FOCUS·필요 역할·아이콘·대표 이미지·링크 종류·작성자 공개 요약·노트 수·도움 수·생성 시각을 반환한다. 상세 전용 프로젝트 이야기, 전체 이미지 목록과 실제 공개 URL은 포함하지 않는다. 응답의 `nextCursor`가 `null`이면 마지막 페이지다. 소프트 삭제 글과 가입 완료 공개 프로필이 없는 작성자의 글은 목록에서 제외한다. `query`, `role`, `status`, `purpose`, `sort` 필터는 다음 목록 탐색 작업에서 추가한다.
+목록 항목은 프로젝트 ID·제목·한 줄 소개·상태·목적·FOCUS·필요 역할·아이콘·대표 이미지·링크 종류·작성자 공개 요약·노트 수·도움 수·생성 시각을 반환한다. 상세 전용 프로젝트 이야기, 전체 이미지 목록과 실제 공개 URL은 포함하지 않는다. 응답의 `nextCursor`가 `null`이면 마지막 페이지다. 소프트 삭제 글과 가입 완료 공개 프로필이 없는 작성자의 글은 목록에서 제외한다.
+
+목록 탐색 조건은 다음과 같다.
+
+- `query`: 앞뒤 공백 제거 후 최대 100자. 프로젝트 제목·한 줄 소개·작성자 닉네임에서 부분 검색
+- `role`: ITkerus 역할 enum. 해당 역할을 요청했거나 요청 역할이 비어 전체 대상인 프로젝트 포함
+- `status`: `IN_DEVELOPMENT` 또는 `RELEASED`
+- `purpose`: `INTRODUCTION` 또는 `QUESTION`
+- `sort`: `LATEST`, `ITKERUS_NOTES`, `HELPFUL`. 기본값 `LATEST`
+
+검색·필터는 MariaDB 쿼리에서 함께 적용한다. 커서는 검색어·역할·상태·목적·정렬 범위에 묶이며 다른 조건으로 재사용하면 `PROJECT_CURSOR_INVALID` 400을 반환한다. 잇커스 노트 모델이 생기기 전에는 노트 수와 도움 수가 모두 0이므로 `ITKERUS_NOTES`와 `HELPFUL`도 `createdAt DESC, id DESC`로 안정 정렬하고, 실제 집계 정렬은 노트 스키마 작업에서 연결한다.
 
 `GET /projects/:id`는 인증 없이 조회할 수 있는 공개 상세 API다. 프로젝트 본문·상태·목적·FOCUS·필요 역할·링크·외부 이미지와 작성자의 공개 ID·닉네임·주 역할·보조 역할을 반환한다. 소프트 삭제된 프로젝트와 정상적인 가입 완료 프로필이 없는 비정상 프로젝트는 공개하지 않고 `PROJECT_NOT_FOUND` 404로 처리한다. 잇커스 노트 모델이 생기기 전까지 `viewCount`, `itkerusNoteCount`, `helpedCount`는 0으로 반환하며 상세 조회만으로 조회 수를 올리지 않는다.
 

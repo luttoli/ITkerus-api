@@ -6,11 +6,13 @@ import {
 export type ProjectCursor = {
   createdAt: Date;
   id: string;
+  scope: string;
 };
 
 type SerializedProjectCursor = {
   createdAt: string;
   id: string;
+  scope: string;
 };
 
 const uuidPattern =
@@ -20,12 +22,16 @@ export function encodeProjectCursor(cursor: ProjectCursor): string {
   const serialized: SerializedProjectCursor = {
     createdAt: cursor.createdAt.toISOString(),
     id: cursor.id,
+    scope: cursor.scope,
   };
 
   return Buffer.from(JSON.stringify(serialized), 'utf8').toString('base64url');
 }
 
-export function decodeProjectCursor(cursor: string): ProjectCursor {
+export function decodeProjectCursor(
+  cursor: string,
+  expectedScope: string,
+): ProjectCursor {
   try {
     const decoded = Buffer.from(cursor, 'base64url').toString('utf8');
     const parsed = JSON.parse(decoded) as unknown;
@@ -38,12 +44,13 @@ export function decodeProjectCursor(cursor: string): ProjectCursor {
     if (
       Number.isNaN(createdAt.getTime()) ||
       createdAt.toISOString() !== parsed.createdAt ||
-      !uuidPattern.test(parsed.id)
+      !uuidPattern.test(parsed.id) ||
+      parsed.scope !== expectedScope
     ) {
       throw new Error('Invalid project cursor values.');
     }
 
-    return { createdAt, id: parsed.id };
+    return { createdAt, id: parsed.id, scope: parsed.scope };
   } catch {
     throw createProjectBadRequestException(
       ProjectsErrorCode.cursorInvalid,
@@ -60,5 +67,9 @@ function isSerializedProjectCursor(
   }
 
   const record = value as Record<string, unknown>;
-  return typeof record.createdAt === 'string' && typeof record.id === 'string';
+  return (
+    typeof record.createdAt === 'string' &&
+    typeof record.id === 'string' &&
+    typeof record.scope === 'string'
+  );
 }

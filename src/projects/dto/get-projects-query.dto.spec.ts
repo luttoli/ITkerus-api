@@ -1,9 +1,11 @@
 import { BadRequestException } from '@nestjs/common';
+import { ITkerusRole, ProjectPurpose, ProjectStatus } from '@prisma/client';
 import { createAppValidationPipe } from '../../common/validation/create-app-validation-pipe';
 import {
   defaultProjectListLimit,
   GetProjectsQueryDto,
   maximumProjectListLimit,
+  ProjectListSort,
 } from './get-projects-query.dto';
 
 describe('GetProjectsQueryDto', () => {
@@ -23,6 +25,32 @@ describe('GetProjectsQueryDto', () => {
     );
   });
 
+  it('trims search text and accepts enum filters and sorting', async () => {
+    await expect(
+      transform({
+        query: '  냉장고  ',
+        role: ITkerusRole.DESIGNER,
+        status: ProjectStatus.RELEASED,
+        purpose: ProjectPurpose.QUESTION,
+        sort: ProjectListSort.HELPFUL,
+      }),
+    ).resolves.toEqual(
+      expect.objectContaining({
+        query: '냉장고',
+        role: ITkerusRole.DESIGNER,
+        status: ProjectStatus.RELEASED,
+        purpose: ProjectPurpose.QUESTION,
+        sort: ProjectListSort.HELPFUL,
+      }),
+    );
+  });
+
+  it('treats blank search text as an omitted filter', async () => {
+    const query: unknown = await transform({ query: '   ' });
+
+    expect(query).toHaveProperty('query', undefined);
+  });
+
   it('rejects a limit greater than the maximum', async () => {
     await expectValidationError(
       transform({ limit: String(maximumProjectListLimit + 1) }),
@@ -31,6 +59,12 @@ describe('GetProjectsQueryDto', () => {
 
   it('rejects a non-integer limit', async () => {
     await expectValidationError(transform({ limit: '1.5' }));
+  });
+
+  it('rejects unknown filter and sort values', async () => {
+    await expectValidationError(
+      transform({ role: 'ENGINEER', sort: 'POPULAR' }),
+    );
   });
 
   function transform(value: Record<string, unknown>) {

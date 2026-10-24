@@ -3,7 +3,10 @@ import { Prisma, ProjectPurpose, ProjectStatus } from '@prisma/client';
 import { AuthErrorCode, createUnauthorizedException } from '../auth/auth-error';
 import { PrismaService } from '../prisma/prisma.service';
 import { CreateProjectDto } from './dto/create-project.dto';
-import { GetProjectsQueryDto } from './dto/get-projects-query.dto';
+import {
+  GetProjectsQueryDto,
+  ProjectListSort,
+} from './dto/get-projects-query.dto';
 import {
   ProjectListItemResponseDto,
   ProjectListResponseDto,
@@ -136,10 +139,54 @@ export class ProjectsService {
   async getProjects(
     query: GetProjectsQueryDto,
   ): Promise<ProjectListResponseDto> {
-    const cursor = query.cursor ? decodeProjectCursor(query.cursor) : undefined;
+    const scope = this.createProjectListScope(query);
+    const cursor = query.cursor
+      ? decodeProjectCursor(query.cursor, scope)
+      : undefined;
+    const conditions: Prisma.ProjectPostWhereInput[] = [];
+
+    if (query.query) {
+      conditions.push({
+        OR: [
+          { title: { contains: query.query } },
+          { summary: { contains: query.query } },
+          {
+            author: {
+              is: { nickname: { contains: query.query } },
+            },
+          },
+        ],
+      });
+    }
+
+    if (query.role) {
+      conditions.push({
+        OR: [
+          { requestedRoles: { none: {} } },
+          { requestedRoles: { some: { role: query.role } } },
+        ],
+      });
+    }
+
+    if (cursor) {
+      conditions.push({
+        OR: [
+          { createdAt: { lt: cursor.createdAt } },
+          {
+            createdAt: cursor.createdAt,
+            id: { lt: cursor.id },
+          },
+        ],
+      });
+    }
+
     const projects = await this.prisma.projectPost.findMany({
       where: {
         deletedAt: null,
+        ...(query.status ? { status: query.status } : {}),
+        ...(query.purpose
+          ? { purposes: { some: { purpose: query.purpose } } }
+          : {}),
         author: {
           is: {
             isOnboardingCompleted: true,
@@ -147,17 +194,7 @@ export class ProjectsService {
             primaryRole: { not: null },
           },
         },
-        ...(cursor
-          ? {
-              OR: [
-                { createdAt: { lt: cursor.createdAt } },
-                {
-                  createdAt: cursor.createdAt,
-                  id: { lt: cursor.id },
-                },
-              ],
-            }
-          : {}),
+        ...(conditions.length > 0 ? { AND: conditions } : {}),
       },
       orderBy: [{ createdAt: 'desc' }, { id: 'desc' }],
       take: query.limit + 1,
@@ -180,6 +217,7 @@ export class ProjectsService {
         ? encodeProjectCursor({
             createdAt: lastProject.createdAt,
             id: lastProject.id,
+            scope,
           })
         : null;
 
@@ -542,5 +580,15 @@ export class ProjectsService {
         secondaryRoles: project.author.secondaryRoles.map(({ role }) => role),
       },
     };
+  }
+
+  private createProjectListScope(query: GetProjectsQueryDto): string {
+    return JSON.stringify([
+      query.query ?? null,
+      query.role ?? null,
+      query.status ?? null,
+      query.purpose ?? null,
+      query.sort ?? ProjectListSort.LATEST,
+    ]);
   }
 }
