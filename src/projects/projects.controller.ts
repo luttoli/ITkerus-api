@@ -2,6 +2,7 @@ import {
   Body,
   Controller,
   Delete,
+  Get,
   HttpCode,
   Param,
   Patch,
@@ -11,16 +12,26 @@ import {
 import { AccessTokenGuard } from '../auth/access-token.guard';
 import { CurrentUserId } from '../auth/current-user-id.decorator';
 import { CreateProjectDto } from './dto/create-project.dto';
-import { ProjectResponseDto } from './dto/project-response.dto';
+import {
+  ProjectDetailResponseDto,
+  ProjectResponseDto,
+} from './dto/project-response.dto';
 import { UpdateProjectDto } from './dto/update-project.dto';
 import { ProjectsService } from './projects.service';
 
 @Controller('projects')
-@UseGuards(AccessTokenGuard)
 export class ProjectsController {
   constructor(private readonly projectsService: ProjectsService) {}
 
+  @Get(':projectId')
+  getProject(
+    @Param('projectId') projectId: string,
+  ): Promise<ProjectDetailResponseDto> {
+    return this.projectsService.getProject(projectId);
+  }
+
   @Post()
+  @UseGuards(AccessTokenGuard)
   createProject(
     @CurrentUserId() userId: string,
     @Body() request: CreateProjectDto,
@@ -29,6 +40,7 @@ export class ProjectsController {
   }
 
   @Patch(':projectId')
+  @UseGuards(AccessTokenGuard)
   updateProject(
     @CurrentUserId() userId: string,
     @Param('projectId') projectId: string,
@@ -39,6 +51,7 @@ export class ProjectsController {
 
   @Delete(':projectId')
   @HttpCode(204)
+  @UseGuards(AccessTokenGuard)
   deleteProject(
     @CurrentUserId() userId: string,
     @Param('projectId') projectId: string,

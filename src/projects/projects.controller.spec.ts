@@ -4,15 +4,18 @@ import {
   ProjectPurpose,
   ProjectStatus,
 } from '@prisma/client';
+import { GUARDS_METADATA } from '@nestjs/common/constants';
 import { CreateProjectDto } from './dto/create-project.dto';
 import { ProjectsController } from './projects.controller';
 import { ProjectsService } from './projects.service';
 
 describe('ProjectsController', () => {
+  const getProject = jest.fn();
   const createProject = jest.fn();
   const updateProject = jest.fn();
   const deleteProject = jest.fn();
   const service = {
+    getProject,
     createProject,
     updateProject,
     deleteProject,
@@ -36,6 +39,23 @@ describe('ProjectsController', () => {
 
   beforeEach(() => {
     jest.clearAllMocks();
+  });
+
+  it('passes a public project ID to the detail service', async () => {
+    const response = { id: 'project-id', title: '브랜드킷' };
+    getProject.mockResolvedValue(response);
+
+    await expect(controller.getProject('project-id')).resolves.toEqual(
+      response,
+    );
+    expect(getProject).toHaveBeenCalledWith('project-id');
+  });
+
+  it('keeps detail public and protects every write endpoint', () => {
+    expect(hasGuard('getProject')).toBe(false);
+    expect(hasGuard('createProject')).toBe(true);
+    expect(hasGuard('updateProject')).toBe(true);
+    expect(hasGuard('deleteProject')).toBe(true);
   });
 
   it('passes the authenticated user ID and body to the service', async () => {
@@ -71,3 +91,14 @@ describe('ProjectsController', () => {
     expect(deleteProject).toHaveBeenCalledWith('user-id', 'project-id');
   });
 });
+
+function hasGuard(methodName: keyof ProjectsController): boolean {
+  const descriptor = Object.getOwnPropertyDescriptor(
+    ProjectsController.prototype,
+    methodName,
+  );
+
+  return descriptor?.value
+    ? Reflect.hasMetadata(GUARDS_METADATA, descriptor.value as object)
+    : false;
+}

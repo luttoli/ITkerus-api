@@ -3,7 +3,10 @@ import { Prisma, ProjectPurpose, ProjectStatus } from '@prisma/client';
 import { AuthErrorCode, createUnauthorizedException } from '../auth/auth-error';
 import { PrismaService } from '../prisma/prisma.service';
 import { CreateProjectDto } from './dto/create-project.dto';
-import { ProjectResponseDto } from './dto/project-response.dto';
+import {
+  ProjectDetailResponseDto,
+  ProjectResponseDto,
+} from './dto/project-response.dto';
 import { UpdateProjectDto } from './dto/update-project.dto';
 import {
   createProjectBadRequestException,
@@ -49,6 +52,25 @@ type ProjectResult = Prisma.ProjectPostGetPayload<{
   select: typeof projectSelect;
 }>;
 
+const projectDetailSelect = {
+  ...projectSelect,
+  author: {
+    select: {
+      id: true,
+      nickname: true,
+      primaryRole: true,
+      secondaryRoles: {
+        orderBy: { createdAt: 'asc' as const },
+        select: { role: true },
+      },
+    },
+  },
+} satisfies Prisma.ProjectPostSelect;
+
+type ProjectDetailResult = Prisma.ProjectPostGetPayload<{
+  select: typeof projectDetailSelect;
+}>;
+
 type ProjectWriteValues = {
   title: string;
   summary: string;
@@ -66,6 +88,22 @@ type ProjectWriteValues = {
 @Injectable()
 export class ProjectsService {
   constructor(private readonly prisma: PrismaService) {}
+
+  async getProject(projectId: string): Promise<ProjectDetailResponseDto> {
+    const project = await this.prisma.projectPost.findFirst({
+      where: {
+        id: projectId,
+        deletedAt: null,
+      },
+      select: projectDetailSelect,
+    });
+
+    if (!project) {
+      throw createProjectNotFoundException();
+    }
+
+    return this.toDetailResponse(project);
+  }
 
   async createProject(
     userId: string,
@@ -354,6 +392,27 @@ export class ProjectsService {
       helpedCount: 0,
       createdAt: project.createdAt,
       updatedAt: project.updatedAt,
+    };
+  }
+
+  private toDetailResponse(
+    project: ProjectDetailResult,
+  ): ProjectDetailResponseDto {
+    const { nickname, primaryRole } = project.author;
+    if (!nickname || !primaryRole) {
+      throw createProjectNotFoundException();
+    }
+
+    const response = this.toResponse(project);
+
+    return {
+      ...response,
+      author: {
+        id: project.author.id,
+        nickname,
+        primaryRole,
+        secondaryRoles: project.author.secondaryRoles.map(({ role }) => role),
+      },
     };
   }
 }

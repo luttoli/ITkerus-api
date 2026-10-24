@@ -161,6 +161,8 @@ Prisma의 개발 마이그레이션은 고정된 `itkerus_dev_shadow`를 변경 
 
 `GET /projects`는 `cursor`, `limit`, `query`, `role`, `status`, `purpose`, `sort`를 선택적으로 받는다.
 
+`GET /projects/:id`는 인증 없이 조회할 수 있는 공개 상세 API다. 프로젝트 본문·상태·목적·FOCUS·필요 역할·링크·외부 이미지와 작성자의 공개 ID·닉네임·주 역할·보조 역할을 반환한다. 소프트 삭제된 프로젝트와 정상적인 가입 완료 프로필이 없는 비정상 프로젝트는 공개하지 않고 `PROJECT_NOT_FOUND` 404로 처리한다. 잇커스 노트 모델이 생기기 전까지 `viewCount`, `itkerusNoteCount`, `helpedCount`는 0으로 반환하며 상세 조회만으로 조회 수를 올리지 않는다.
+
 `POST /projects`는 완료된 프로필을 가진 Bearer 인증 사용자만 호출한다. 요청은 다음 값을 사용한다.
 
 - `title`: 앞뒤 공백 제거 후 1~50자

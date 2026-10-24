@@ -11,6 +11,13 @@ export type ProjectLinkResponseDto = {
   url: string;
 };
 
+export type ProjectAuthorResponseDto = {
+  id: string;
+  nickname: string;
+  primaryRole: ITkerusRole;
+  secondaryRoles: ITkerusRole[];
+};
+
 export type ProjectResponseDto = {
   id: string;
   authorId: string;
@@ -30,4 +37,8 @@ export type ProjectResponseDto = {
   helpedCount: number;
   createdAt: Date;
   updatedAt: Date;
+};
+
+export type ProjectDetailResponseDto = ProjectResponseDto & {
+  author: ProjectAuthorResponseDto;
 };
