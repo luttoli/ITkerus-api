@@ -1,6 +1,8 @@
 import { SocialProvider } from '@prisma/client';
 import {
+  IsBoolean,
   IsEnum,
+  IsOptional,
   IsString,
   Length,
   MaxLength,
@@ -19,4 +21,12 @@ export class LoginRequestDto {
   @IsString()
   @Length(16, 256)
   nonce!: string;
+
+  @IsOptional()
+  @IsBoolean()
+  acceptedTerms?: boolean;
+
+  @IsOptional()
+  @IsBoolean()
+  acceptedPrivacy?: boolean;
 }

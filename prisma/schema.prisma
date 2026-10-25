@@ -44,6 +44,8 @@ model User {
   introduction          String?      @db.VarChar(60)
   primaryRole           ITkerusRole?
   isOnboardingCompleted Boolean      @default(false)
+  termsAcceptedAt       DateTime?    @db.DateTime(3)
+  privacyAcceptedAt     DateTime?    @db.DateTime(3)
   createdAt             DateTime     @default(now()) @db.DateTime(3)
   updatedAt             DateTime     @updatedAt @db.DateTime(3)
 

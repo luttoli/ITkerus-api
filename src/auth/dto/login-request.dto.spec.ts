@@ -6,13 +6,15 @@ import { LoginRequestDto } from './login-request.dto';
 describe('LoginRequestDto', () => {
   const validationPipe = createAppValidationPipe();
 
-  it('accepts a supported provider, identity token and nonce', async () => {
+  it('accepts a supported provider, identity token, nonce and consent', async () => {
     await expect(
       validationPipe.transform(
         {
           provider: SocialProvider.APPLE,
           identityToken: 'identity-token',
           nonce: 'nonce-with-16-characters',
+          acceptedTerms: true,
+          acceptedPrivacy: true,
         },
         { type: 'body', metatype: LoginRequestDto },
       ),
@@ -39,6 +41,21 @@ describe('LoginRequestDto', () => {
           provider: SocialProvider.KAKAO,
           identityToken: 'identity-token',
           nonce: 'short',
+        },
+        { type: 'body', metatype: LoginRequestDto },
+      ),
+    );
+  });
+
+  it('rejects non-boolean consent values', async () => {
+    await expectValidationError(
+      validationPipe.transform(
+        {
+          provider: SocialProvider.APPLE,
+          identityToken: 'identity-token',
+          nonce: 'nonce-with-16-characters',
+          acceptedTerms: 'true',
+          acceptedPrivacy: true,
         },
         { type: 'body', metatype: LoginRequestDto },
       ),

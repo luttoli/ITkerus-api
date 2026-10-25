@@ -17,6 +17,8 @@ const descriptions: Record<string, TableDescription> = {
       introduction: '최대 60자의 선택 한 줄 소개',
       primaryRole: '사용자의 주 역할',
       isOnboardingCompleted: '닉네임과 역할 설정을 마친 가입 완료 여부',
+      termsAcceptedAt: '필수 이용약관에 동의한 일시(UTC)',
+      privacyAcceptedAt: '필수 개인정보 처리방침에 동의한 일시(UTC)',
       createdAt: '사용자 생성 일시(UTC)',
       updatedAt: '사용자 마지막 수정 일시(UTC)',
     },

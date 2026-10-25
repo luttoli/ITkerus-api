@@ -1,6 +1,7 @@
 import {
   BadRequestException,
   ConflictException,
+  HttpException,
   UnauthorizedException,
 } from '@nestjs/common';
 import { ITkerusRole, Prisma } from '@prisma/client';
@@ -25,6 +26,8 @@ describe('UsersService', () => {
       { role: ITkerusRole.PLANNER },
     ],
     isOnboardingCompleted: true,
+    termsAcceptedAt: new Date('2026-10-26T00:00:00.000Z'),
+    privacyAcceptedAt: new Date('2026-10-26T00:00:00.000Z'),
   };
   const request: UpdateMyProfileDto = {
     nickname: '잇커스',
@@ -57,6 +60,20 @@ describe('UsersService', () => {
       service.getMyProfile('deleted-user-id'),
       UnauthorizedException,
       'AUTH_USER_NOT_FOUND',
+    );
+  });
+
+  it('requires renewed login when the user has no consent record', async () => {
+    findUnique.mockResolvedValue({
+      ...storedProfile,
+      termsAcceptedAt: null,
+      privacyAcceptedAt: null,
+    });
+
+    await expectHttpError(
+      service.getMyProfile('user-id'),
+      HttpException,
+      'AUTH_CONSENT_REQUIRED',
     );
   });
 
@@ -121,6 +138,7 @@ async function expectHttpError(
   exceptionType:
     | typeof BadRequestException
     | typeof ConflictException
+    | typeof HttpException
     | typeof UnauthorizedException,
   expectedCode: string,
 ) {
@@ -131,7 +149,11 @@ async function expectHttpError(
     expect(error).toBeInstanceOf(exceptionType);
     expect(
       (
-        error as BadRequestException | ConflictException | UnauthorizedException
+        error as
+          | BadRequestException
+          | ConflictException
+          | HttpException
+          | UnauthorizedException
       ).getResponse(),
     ).toEqual(expect.objectContaining({ code: expectedCode }));
   }

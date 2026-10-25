@@ -1,6 +1,10 @@
 import { Injectable } from '@nestjs/common';
 import { Prisma } from '@prisma/client';
-import { AuthErrorCode, createUnauthorizedException } from '../auth/auth-error';
+import {
+  AuthErrorCode,
+  createConsentRequiredException,
+  createUnauthorizedException,
+} from '../auth/auth-error';
 import { PrismaService } from '../prisma/prisma.service';
 import { MyProfileResponseDto } from './dto/my-profile-response.dto';
 import { UpdateMyProfileDto } from './dto/update-my-profile.dto';
@@ -15,6 +19,8 @@ const profileSelect = {
   introduction: true,
   primaryRole: true,
   isOnboardingCompleted: true,
+  termsAcceptedAt: true,
+  privacyAcceptedAt: true,
   secondaryRoles: {
     orderBy: { createdAt: 'asc' as const },
     select: { role: true },
@@ -38,6 +44,10 @@ export class UsersService {
         AuthErrorCode.userNotFound,
         '사용자 정보를 찾을 수 없습니다. 다시 로그인해주세요.',
       );
+    }
+
+    if (!profile.termsAcceptedAt || !profile.privacyAcceptedAt) {
+      throw createConsentRequiredException();
     }
 
     return this.toResponse(profile);

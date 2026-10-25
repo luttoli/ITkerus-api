@@ -1,4 +1,5 @@
-import { SocialProvider } from '@prisma/client';
+import { HttpException } from '@nestjs/common';
+import { Prisma, SocialProvider } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
 import { AuthService } from './auth.service';
 import { AuthTokenService } from './auth-token.service';
@@ -6,10 +7,13 @@ import { SocialIdentityTokenService } from './social/social-identity-token.servi
 
 describe('AuthService', () => {
   const findUnique = jest.fn();
-  const create = jest.fn();
+  let capturedCreateInput: Prisma.UserCreateArgs | undefined;
+  let capturedUpdateInput: Prisma.UserUpdateArgs | undefined;
+  const create = jest.fn<(input: Prisma.UserCreateArgs) => Promise<unknown>>();
+  const update = jest.fn<(input: Prisma.UserUpdateArgs) => Promise<unknown>>();
   const prisma = {
     socialAccount: { findUnique },
-    user: { create },
+    user: { create, update },
   } as unknown as PrismaService;
   const verifySocialIdentity = jest.fn();
   const socialIdentityTokenService = {
@@ -29,9 +33,12 @@ describe('AuthService', () => {
     identityToken: 'identity-token',
     nonce: 'apple-raw-nonce-value',
   };
+  const acceptedAt = new Date('2026-10-26T00:00:00.000Z');
 
   beforeEach(() => {
     jest.clearAllMocks();
+    capturedCreateInput = undefined;
+    capturedUpdateInput = undefined;
     verifySocialIdentity.mockResolvedValue({
       provider: SocialProvider.APPLE,
       providerUserId: 'apple-user-id',
@@ -45,7 +52,12 @@ describe('AuthService', () => {
 
   it('returns the existing user for a known social account', async () => {
     findUnique.mockResolvedValue({
-      user: { id: 'existing-user-id', isOnboardingCompleted: true },
+      user: {
+        id: 'existing-user-id',
+        isOnboardingCompleted: true,
+        termsAcceptedAt: acceptedAt,
+        privacyAcceptedAt: acceptedAt,
+      },
     });
 
     await expect(service.login(request)).resolves.toEqual({
@@ -59,16 +71,36 @@ describe('AuthService', () => {
       },
     });
     expect(create).not.toHaveBeenCalled();
+    expect(update).not.toHaveBeenCalled();
   });
 
-  it('creates a user and social account for a verified new identity', async () => {
+  it('requires consent before creating a user for a new identity', async () => {
     findUnique.mockResolvedValue(null);
-    create.mockResolvedValue({
-      id: 'new-user-id',
-      isOnboardingCompleted: false,
+
+    await expectHttpError(service.login(request), 428, 'AUTH_CONSENT_REQUIRED');
+    expect(create).not.toHaveBeenCalled();
+    expect(issueAccessToken).not.toHaveBeenCalled();
+  });
+
+  it('creates a user after both required documents are accepted', async () => {
+    findUnique.mockResolvedValue(null);
+    create.mockImplementation((input: Prisma.UserCreateArgs) => {
+      capturedCreateInput = input;
+      return Promise.resolve({
+        id: 'new-user-id',
+        isOnboardingCompleted: false,
+        termsAcceptedAt: acceptedAt,
+        privacyAcceptedAt: acceptedAt,
+      });
     });
 
-    await expect(service.login(request)).resolves.toEqual({
+    await expect(
+      service.login({
+        ...request,
+        acceptedTerms: true,
+        acceptedPrivacy: true,
+      }),
+    ).resolves.toEqual({
       accessToken: 'itkerus-access-token',
       tokenType: 'Bearer',
       expiresInSeconds: 3600,
@@ -78,17 +110,84 @@ describe('AuthService', () => {
         isOnboardingCompleted: false,
       },
     });
-    expect(create).toHaveBeenCalledWith(
-      expect.objectContaining({
-        data: {
-          socialAccounts: {
-            create: {
-              provider: SocialProvider.APPLE,
-              providerUserId: 'apple-user-id',
-            },
-          },
-        },
+    expect(capturedCreateInput?.data.termsAcceptedAt).toBeInstanceOf(Date);
+    expect(capturedCreateInput?.data.privacyAcceptedAt).toBeInstanceOf(Date);
+    expect(capturedCreateInput?.data.socialAccounts).toEqual({
+      create: {
+        provider: SocialProvider.APPLE,
+        providerUserId: 'apple-user-id',
+      },
+    });
+  });
+
+  it('requires consent from an existing user without a consent record', async () => {
+    findUnique.mockResolvedValue({
+      user: {
+        id: 'existing-user-id',
+        isOnboardingCompleted: true,
+        termsAcceptedAt: null,
+        privacyAcceptedAt: null,
+      },
+    });
+
+    await expectHttpError(service.login(request), 428, 'AUTH_CONSENT_REQUIRED');
+    expect(update).not.toHaveBeenCalled();
+  });
+
+  it('stores missing consent timestamps for an existing user', async () => {
+    findUnique.mockResolvedValue({
+      user: {
+        id: 'existing-user-id',
+        isOnboardingCompleted: true,
+        termsAcceptedAt: null,
+        privacyAcceptedAt: null,
+      },
+    });
+    update.mockImplementation((input: Prisma.UserUpdateArgs) => {
+      capturedUpdateInput = input;
+      return Promise.resolve({
+        id: 'existing-user-id',
+        isOnboardingCompleted: true,
+        termsAcceptedAt: acceptedAt,
+        privacyAcceptedAt: acceptedAt,
+      });
+    });
+
+    await expect(
+      service.login({
+        ...request,
+        acceptedTerms: true,
+        acceptedPrivacy: true,
       }),
-    );
+    ).resolves.toEqual({
+      accessToken: 'itkerus-access-token',
+      tokenType: 'Bearer',
+      expiresInSeconds: 3600,
+      user: {
+        id: 'existing-user-id',
+        isNewUser: false,
+        isOnboardingCompleted: true,
+      },
+    });
+    expect(capturedUpdateInput?.where).toEqual({ id: 'existing-user-id' });
+    expect(capturedUpdateInput?.data.termsAcceptedAt).toBeInstanceOf(Date);
+    expect(capturedUpdateInput?.data.privacyAcceptedAt).toBeInstanceOf(Date);
   });
 });
+
+async function expectHttpError(
+  promise: Promise<unknown>,
+  expectedStatus: number,
+  expectedCode: string,
+) {
+  try {
+    await promise;
+    throw new Error('Expected an HttpException.');
+  } catch (error) {
+    expect(error).toBeInstanceOf(HttpException);
+    expect((error as HttpException).getStatus()).toBe(expectedStatus);
+    expect((error as HttpException).getResponse()).toEqual(
+      expect.objectContaining({ code: expectedCode }),
+    );
+  }
+}
