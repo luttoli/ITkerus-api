@@ -5,6 +5,7 @@ import {
   Get,
   HttpCode,
   Param,
+  ParseIntPipe,
   Patch,
   Post,
   Query,
@@ -35,7 +36,7 @@ export class ProjectsController {
 
   @Get(':projectId')
   getProject(
-    @Param('projectId') projectId: string,
+    @Param('projectId', ParseIntPipe) projectId: number,
   ): Promise<ProjectDetailResponseDto> {
     return this.projectsService.getProject(projectId);
   }
@@ -43,7 +44,7 @@ export class ProjectsController {
   @Post()
   @UseGuards(AccessTokenGuard)
   createProject(
-    @CurrentUserId() userId: string,
+    @CurrentUserId() userId: number,
     @Body() request: CreateProjectDto,
   ): Promise<ProjectResponseDto> {
     return this.projectsService.createProject(userId, request);
@@ -52,8 +53,8 @@ export class ProjectsController {
   @Patch(':projectId')
   @UseGuards(AccessTokenGuard)
   updateProject(
-    @CurrentUserId() userId: string,
-    @Param('projectId') projectId: string,
+    @CurrentUserId() userId: number,
+    @Param('projectId', ParseIntPipe) projectId: number,
     @Body() request: UpdateProjectDto,
   ): Promise<ProjectResponseDto> {
     return this.projectsService.updateProject(userId, projectId, request);
@@ -63,8 +64,8 @@ export class ProjectsController {
   @HttpCode(204)
   @UseGuards(AccessTokenGuard)
   deleteProject(
-    @CurrentUserId() userId: string,
-    @Param('projectId') projectId: string,
+    @CurrentUserId() userId: number,
+    @Param('projectId', ParseIntPipe) projectId: number,
   ): Promise<void> {
     return this.projectsService.deleteProject(userId, projectId);
   }

@@ -12,7 +12,7 @@ const descriptions: Record<string, TableDescription> = {
   User: {
     description: 'ITkerus 사용자 계정과 공개 프로필',
     columns: {
-      id: '사용자 공개 UUID',
+      id: '자동 증가 사용자 번호',
       nickname: '온보딩에서 정하는 2~10자 고유 닉네임',
       introduction: '최대 60자의 선택 한 줄 소개',
       primaryRole: '사용자의 주 역할',
@@ -26,7 +26,7 @@ const descriptions: Record<string, TableDescription> = {
   SocialAccount: {
     description: 'Apple 또는 Kakao 검증 계정과 사용자의 연결',
     columns: {
-      id: '소셜 계정 연결 UUID',
+      id: '자동 증가 소셜 계정 연결 번호',
       provider: '로그인 제공자(APPLE 또는 KAKAO)',
       providerUserId: '제공자가 검증해 발급한 사용자 고유 식별자',
       userId: '연결된 User.id',
@@ -36,7 +36,7 @@ const descriptions: Record<string, TableDescription> = {
   UserSecondaryRole: {
     description: '사용자가 선택한 최대 두 개의 보조 역할',
     columns: {
-      id: '보조 역할 행 UUID',
+      id: '자동 증가 보조 역할 행 번호',
       userId: '보조 역할을 소유한 User.id',
       role: '사용자의 보조 역할',
       createdAt: '보조 역할 생성 일시(UTC)',
@@ -45,7 +45,7 @@ const descriptions: Record<string, TableDescription> = {
   ProjectPost: {
     description: '사용자가 공개한 프로젝트 소개와 고민',
     columns: {
-      id: '프로젝트 공개 UUID',
+      id: '자동 증가 프로젝트 번호',
       authorId: '프로젝트를 작성한 User.id',
       title: '최대 50자의 프로젝트 이름',
       summary: '최대 120자의 한 줄 소개',
@@ -78,7 +78,7 @@ const descriptions: Record<string, TableDescription> = {
   ProjectLink: {
     description: '출시 프로젝트의 App Store, Google Play 또는 Web 공개 링크',
     columns: {
-      id: '프로젝트 링크 공개 UUID',
+      id: '자동 증가 프로젝트 링크 번호',
       projectId: '링크가 연결된 ProjectPost.id',
       type: '공개 링크 종류(APP_STORE, GOOGLE_PLAY 또는 WEB)',
       url: '사용자가 접근할 수 있는 공개 HTTPS URL',
@@ -89,7 +89,7 @@ const descriptions: Record<string, TableDescription> = {
   ProjectImage: {
     description: '출시 프로젝트에서 선택 가능한 외부 소개 이미지',
     columns: {
-      id: '프로젝트 이미지 공개 UUID',
+      id: '자동 증가 프로젝트 이미지 번호',
       projectId: '이미지가 연결된 ProjectPost.id',
       url: '스토어 등 외부 원본의 HTTPS 이미지 URL',
       position: '프로젝트 안에서 이미지를 표시할 순서',
@@ -99,7 +99,7 @@ const descriptions: Record<string, TableDescription> = {
   ITkerusNote: {
     description: '사용자가 프로젝트를 살펴보고 남긴 잇커스 노트',
     columns: {
-      id: '잇커스 노트 공개 UUID',
+      id: '자동 증가 잇커스 노트 번호',
       projectId: '노트가 작성된 ProjectPost.id',
       authorId: '노트를 작성한 User.id',
       authorRole: '노트 작성 당시 사용자의 주 역할',

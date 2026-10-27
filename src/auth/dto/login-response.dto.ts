@@ -3,7 +3,7 @@ export type LoginResponseDto = {
   tokenType: 'Bearer';
   expiresInSeconds: number;
   user: {
-    id: string;
+    id: number;
     isNewUser: boolean;
     isOnboardingCompleted: boolean;
   };

@@ -21,12 +21,12 @@ describe('NotesController', () => {
   });
 
   it('passes the authenticated user, project, and body to the service', async () => {
-    const response = { id: 'note-id' };
+    const response = { id: 200 };
     createNote.mockResolvedValue(response);
 
-    await expect(
-      controller.createNote('user-id', 'project-id', request),
-    ).resolves.toEqual(response);
-    expect(createNote).toHaveBeenCalledWith('user-id', 'project-id', request);
+    await expect(controller.createNote(1, 10, request)).resolves.toEqual(
+      response,
+    );
+    expect(createNote).toHaveBeenCalledWith(1, 10, request);
   });
 });

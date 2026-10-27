@@ -6,21 +6,21 @@ import {
 } from '@prisma/client';
 
 export type ProjectLinkResponseDto = {
-  id: string;
+  id: number;
   type: ProjectLinkType;
   url: string;
 };
 
 export type ProjectAuthorResponseDto = {
-  id: string;
+  id: number;
   nickname: string;
   primaryRole: ITkerusRole;
   secondaryRoles: ITkerusRole[];
 };
 
 export type ProjectResponseDto = {
-  id: string;
-  authorId: string;
+  id: number;
+  authorId: number;
   title: string;
   summary: string;
   story: string;

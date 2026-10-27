@@ -1,9 +1,9 @@
 import { ITkerusRole } from '@prisma/client';
 
 export type NoteResponseDto = {
-  id: string;
-  projectId: string;
-  authorId: string;
+  id: number;
+  projectId: number;
+  authorId: number;
   authorRole: ITkerusRole;
   content: string;
   didTryProject: boolean;

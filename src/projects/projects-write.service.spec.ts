@@ -24,8 +24,8 @@ describe('ProjectsService project update and deletion', () => {
   } as unknown as PrismaService;
   const service = new ProjectsService(prisma);
   const storedProject = {
-    id: 'project-id',
-    authorId: 'user-id',
+    id: 10,
+    authorId: 1,
     title: '냉장고컷',
     summary: '냉장고 속 재료로 요리를 추천하는 앱',
     story: '',
@@ -40,7 +40,7 @@ describe('ProjectsService project update and deletion', () => {
     requestedRoles: [{ role: ITkerusRole.DESIGNER }],
     links: [
       {
-        id: 'link-id',
+        id: 100,
         type: ProjectLinkType.APP_STORE,
         url: 'https://apps.apple.com/app/id123456789',
       },
@@ -66,7 +66,7 @@ describe('ProjectsService project update and deletion', () => {
 
   it('updates scalar fields and replaces all child relations atomically', async () => {
     await expect(
-      service.updateProject('user-id', 'project-id', {
+      service.updateProject(1, 10, {
         title: '새 프로젝트 이름',
         status: ProjectStatus.IN_DEVELOPMENT,
         iconUrl: null,
@@ -83,8 +83,8 @@ describe('ProjectsService project update and deletion', () => {
       }),
     );
     expect(capturedUpdateInput?.where).toEqual({
-      id: 'project-id',
-      authorId: 'user-id',
+      id: 10,
+      authorId: 1,
       deletedAt: null,
     });
     expect(capturedUpdateInput?.data).toEqual(
@@ -106,7 +106,7 @@ describe('ProjectsService project update and deletion', () => {
 
   it('rejects an empty update body', async () => {
     await expectHttpError(
-      service.updateProject('user-id', 'project-id', {}),
+      service.updateProject(1, 10, {}),
       BadRequestException,
       'PROJECT_UPDATE_EMPTY',
     );
@@ -115,7 +115,7 @@ describe('ProjectsService project update and deletion', () => {
 
   it('validates the merged final project state', async () => {
     await expectHttpError(
-      service.updateProject('user-id', 'project-id', {
+      service.updateProject(1, 10, {
         purposes: [ProjectPurpose.QUESTION],
       }),
       BadRequestException,
@@ -128,7 +128,7 @@ describe('ProjectsService project update and deletion', () => {
     findUnique.mockResolvedValue(null);
 
     await expectHttpError(
-      service.updateProject('user-id', 'missing-id', { title: '새 이름' }),
+      service.updateProject(1, 404, { title: '새 이름' }),
       NotFoundException,
       'PROJECT_NOT_FOUND',
     );
@@ -136,7 +136,7 @@ describe('ProjectsService project update and deletion', () => {
 
   it('returns 403 when a different user tries to update', async () => {
     await expectHttpError(
-      service.updateProject('other-user-id', 'project-id', {
+      service.updateProject(2, 10, {
         title: '새 이름',
       }),
       ForbiddenException,
@@ -151,7 +151,7 @@ describe('ProjectsService project update and deletion', () => {
     });
 
     await expectHttpError(
-      service.updateProject('user-id', 'project-id', { title: '새 이름' }),
+      service.updateProject(1, 10, { title: '새 이름' }),
       GoneException,
       'PROJECT_DELETED',
     );
@@ -166,19 +166,17 @@ describe('ProjectsService project update and deletion', () => {
     );
 
     await expectHttpError(
-      service.updateProject('user-id', 'project-id', { title: '새 이름' }),
+      service.updateProject(1, 10, { title: '새 이름' }),
       GoneException,
       'PROJECT_DELETED',
     );
   });
 
   it('soft deletes an owned active project', async () => {
-    await expect(
-      service.deleteProject('user-id', 'project-id'),
-    ).resolves.toBeUndefined();
+    await expect(service.deleteProject(1, 10)).resolves.toBeUndefined();
     expect(capturedUpdateInput?.where).toEqual({
-      id: 'project-id',
-      authorId: 'user-id',
+      id: 10,
+      authorId: 1,
       deletedAt: null,
     });
     const deletedAt = (
@@ -194,7 +192,7 @@ describe('ProjectsService project update and deletion', () => {
     });
 
     await expectHttpError(
-      service.deleteProject('user-id', 'project-id'),
+      service.deleteProject(1, 10),
       GoneException,
       'PROJECT_DELETED',
     );

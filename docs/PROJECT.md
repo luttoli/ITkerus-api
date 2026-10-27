@@ -46,7 +46,7 @@ Prisma의 개발 마이그레이션은 고정된 `itkerus_dev_shadow`를 변경 
 
 ## 3. 데이터 모델 기준
 
-모든 공개 ID는 UUID 문자열을 사용한다. 날짜는 UTC로 저장하고 JSON에서는 ISO 8601 문자열로 반환한다.
+모든 기본키와 외래키는 마이밀링 서버와 같은 자동 증가 `Int`를 사용한다. 숫자 ID는 추측할 수 있으므로 비공개 데이터 접근은 요청 ID만 신뢰하지 않고 JWT 사용자와 소유권을 서버에서 반드시 다시 확인한다. 날짜는 UTC로 저장하고 JSON에서는 ISO 8601 문자열로 반환한다.
 
 ### User
 
@@ -165,7 +165,7 @@ Prisma의 개발 마이그레이션은 고정된 `itkerus_dev_shadow`를 변경 
 - `PATCH /projects/:id`
 - `DELETE /projects/:id`
 
-`GET /projects`는 인증 없이 조회하는 공개 목록 API다. 현재 구현은 `cursor`와 `limit`을 선택적으로 받으며 `limit` 기본값은 20, 최댓값은 50이다. `createdAt DESC, id DESC`로 안정 정렬하고 `(deletedAt, createdAt, id)` 복합 인덱스를 사용한다. 다음 페이지 커서는 마지막 프로젝트의 생성 시각과 UUID를 Base64 URL 형식의 불투명 문자열로 묶으며 잘못된 커서는 `PROJECT_CURSOR_INVALID` 400으로 거부한다.
+`GET /projects`는 인증 없이 조회하는 공개 목록 API다. 현재 구현은 `cursor`와 `limit`을 선택적으로 받으며 `limit` 기본값은 20, 최댓값은 50이다. `createdAt DESC, id DESC`로 안정 정렬하고 `(deletedAt, createdAt, id)` 복합 인덱스를 사용한다. 다음 페이지 커서는 마지막 프로젝트의 생성 시각과 숫자 ID를 Base64 URL 형식의 불투명 문자열로 묶으며 잘못된 커서는 `PROJECT_CURSOR_INVALID` 400으로 거부한다.
 
 목록 항목은 프로젝트 ID·제목·한 줄 소개·상태·목적·FOCUS·필요 역할·아이콘·대표 이미지·링크 종류·작성자 공개 요약·노트 수·도움 수·생성 시각을 반환한다. 상세 전용 프로젝트 이야기, 전체 이미지 목록과 실제 공개 URL은 포함하지 않는다. 응답의 `nextCursor`가 `null`이면 마지막 페이지다. 소프트 삭제 글과 가입 완료 공개 프로필이 없는 작성자의 글은 목록에서 제외한다.
 

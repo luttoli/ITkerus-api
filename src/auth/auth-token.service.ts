@@ -24,9 +24,9 @@ export class AuthTokenService {
     private readonly jwtConfig: JwtConfigService,
   ) {}
 
-  async issueAccessToken(userId: string): Promise<IssuedAccessToken> {
+  async issueAccessToken(userId: number): Promise<IssuedAccessToken> {
     const payload: AccessTokenPayload = {
-      sub: userId,
+      sub: String(userId),
       tokenType: 'access',
     };
     const accessToken = await this.jwtService.signAsync(payload, {
@@ -44,7 +44,7 @@ export class AuthTokenService {
     };
   }
 
-  async verifyAccessToken(token: string): Promise<string> {
+  async verifyAccessToken(token: string): Promise<number> {
     try {
       const payload = await this.jwtService.verifyAsync<AccessTokenPayload>(
         token,
@@ -56,10 +56,12 @@ export class AuthTokenService {
         },
       );
 
+      const userId = Number(payload.sub);
       if (
         payload.tokenType !== 'access' ||
         typeof payload.sub !== 'string' ||
-        !payload.sub
+        !Number.isSafeInteger(userId) ||
+        userId <= 0
       ) {
         throw createUnauthorizedException(
           AuthErrorCode.tokenInvalid,
@@ -67,7 +69,7 @@ export class AuthTokenService {
         );
       }
 
-      return payload.sub;
+      return userId;
     } catch (error) {
       if (error instanceof UnauthorizedException) {
         throw error;

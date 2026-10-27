@@ -3,7 +3,7 @@ import { AuthErrorCode, createUnauthorizedException } from './auth-error';
 import { AuthenticatedRequest } from './authenticated-request';
 
 export const CurrentUserId = createParamDecorator(
-  (_data: unknown, context: ExecutionContext): string => {
+  (_data: unknown, context: ExecutionContext): number => {
     const request = context.switchToHttp().getRequest<AuthenticatedRequest>();
     const userId = request.auth?.userId;
 

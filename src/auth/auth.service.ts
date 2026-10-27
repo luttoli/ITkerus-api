@@ -9,7 +9,7 @@ import { VerifiedSocialIdentity } from './social/social-identity-token.service';
 import { SocialIdentityTokenService } from './social/social-identity-token.service';
 
 type LoginUser = {
-  id: string;
+  id: number;
   isOnboardingCompleted: boolean;
   termsAcceptedAt: Date | null;
   privacyAcceptedAt: Date | null;

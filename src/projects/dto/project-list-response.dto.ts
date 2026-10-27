@@ -7,7 +7,7 @@ import {
 import { ProjectAuthorResponseDto } from './project-response.dto';
 
 export type ProjectListItemResponseDto = {
-  id: string;
+  id: number;
   title: string;
   summary: string;
   status: ProjectStatus;

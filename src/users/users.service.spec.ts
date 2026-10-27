@@ -17,7 +17,7 @@ describe('UsersService', () => {
   } as unknown as PrismaService;
   const service = new UsersService(prisma);
   const storedProfile = {
-    id: 'user-id',
+    id: 1,
     nickname: '잇커스',
     introduction: '함께 만드는 사람',
     primaryRole: ITkerusRole.DEVELOPER,
@@ -43,8 +43,8 @@ describe('UsersService', () => {
   it('returns the authenticated user profile', async () => {
     findUnique.mockResolvedValue(storedProfile);
 
-    await expect(service.getMyProfile('user-id')).resolves.toEqual({
-      id: 'user-id',
+    await expect(service.getMyProfile(1)).resolves.toEqual({
+      id: 1,
       nickname: '잇커스',
       introduction: '함께 만드는 사람',
       primaryRole: ITkerusRole.DEVELOPER,
@@ -57,7 +57,7 @@ describe('UsersService', () => {
     findUnique.mockResolvedValue(null);
 
     await expectHttpError(
-      service.getMyProfile('deleted-user-id'),
+      service.getMyProfile(99),
       UnauthorizedException,
       'AUTH_USER_NOT_FOUND',
     );
@@ -71,7 +71,7 @@ describe('UsersService', () => {
     });
 
     await expectHttpError(
-      service.getMyProfile('user-id'),
+      service.getMyProfile(1),
       HttpException,
       'AUTH_CONSENT_REQUIRED',
     );
@@ -80,15 +80,15 @@ describe('UsersService', () => {
   it('replaces roles and completes onboarding atomically', async () => {
     update.mockResolvedValue(storedProfile);
 
-    await expect(service.updateMyProfile('user-id', request)).resolves.toEqual(
+    await expect(service.updateMyProfile(1, request)).resolves.toEqual(
       expect.objectContaining({
-        id: 'user-id',
+        id: 1,
         isOnboardingCompleted: true,
       }),
     );
     expect(update).toHaveBeenCalledWith(
       expect.objectContaining({
-        where: { id: 'user-id' },
+        where: { id: 1 },
         data: {
           nickname: '잇커스',
           introduction: '함께 만드는 사람',
@@ -108,7 +108,7 @@ describe('UsersService', () => {
 
   it('rejects a primary role duplicated in secondary roles', async () => {
     await expectHttpError(
-      service.updateMyProfile('user-id', {
+      service.updateMyProfile(1, {
         ...request,
         secondaryRoles: [ITkerusRole.DEVELOPER],
       }),
@@ -126,7 +126,7 @@ describe('UsersService', () => {
     );
 
     await expectHttpError(
-      service.updateMyProfile('user-id', request),
+      service.updateMyProfile(1, request),
       ConflictException,
       'NICKNAME_ALREADY_IN_USE',
     );

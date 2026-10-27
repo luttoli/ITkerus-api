@@ -39,7 +39,7 @@ enum ProjectLinkType {
 }
 
 model User {
-  id                    String       @id @default(uuid()) @db.Char(36)
+  id                    Int          @id @default(autoincrement())
   nickname              String?      @unique @db.VarChar(10)
   introduction          String?      @db.VarChar(60)
   primaryRole           ITkerusRole?
@@ -56,10 +56,10 @@ model User {
 }
 
 model SocialAccount {
-  id             String         @id @default(uuid()) @db.Char(36)
+  id             Int            @id @default(autoincrement())
   provider       SocialProvider
   providerUserId String         @db.VarChar(191)
-  userId         String         @db.Char(36)
+  userId         Int
   createdAt      DateTime       @default(now()) @db.DateTime(3)
 
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
@@ -70,8 +70,8 @@ model SocialAccount {
 }
 
 model UserSecondaryRole {
-  id        String      @id @default(uuid()) @db.Char(36)
-  userId    String      @db.Char(36)
+  id        Int         @id @default(autoincrement())
+  userId    Int
   role      ITkerusRole
   createdAt DateTime    @default(now()) @db.DateTime(3)
 
@@ -82,8 +82,8 @@ model UserSecondaryRole {
 }
 
 model ProjectPost {
-  id               String        @id @default(uuid()) @db.Char(36)
-  authorId         String        @db.Char(36)
+  id               Int           @id @default(autoincrement())
+  authorId         Int
   title            String        @db.VarChar(50)
   summary          String        @db.VarChar(120)
   story            String        @db.Text
@@ -108,7 +108,7 @@ model ProjectPost {
 }
 
 model ProjectPostPurpose {
-  projectId String         @db.Char(36)
+  projectId Int
   purpose   ProjectPurpose
   createdAt DateTime       @default(now()) @db.DateTime(3)
 
@@ -119,7 +119,7 @@ model ProjectPostPurpose {
 }
 
 model ProjectRequestedRole {
-  projectId String      @db.Char(36)
+  projectId Int
   role      ITkerusRole
   createdAt DateTime    @default(now()) @db.DateTime(3)
 
@@ -130,8 +130,8 @@ model ProjectRequestedRole {
 }
 
 model ProjectLink {
-  id        String          @id @default(uuid()) @db.Char(36)
-  projectId String          @db.Char(36)
+  id        Int             @id @default(autoincrement())
+  projectId Int
   type      ProjectLinkType
   url       String          @db.VarChar(2048)
   position  Int             @db.UnsignedSmallInt
@@ -144,8 +144,8 @@ model ProjectLink {
 }
 
 model ProjectImage {
-  id        String   @id @default(uuid()) @db.Char(36)
-  projectId String   @db.Char(36)
+  id        Int      @id @default(autoincrement())
+  projectId Int
   url       String   @db.VarChar(2048)
   position  Int      @db.UnsignedSmallInt
   createdAt DateTime @default(now()) @db.DateTime(3)
@@ -157,9 +157,9 @@ model ProjectImage {
 }
 
 model ITkerusNote {
-  id              String      @id @default(uuid()) @db.Char(36)
-  projectId       String      @db.Char(36)
-  authorId        String      @db.Char(36)
+  id              Int         @id @default(autoincrement())
+  projectId       Int
+  authorId        Int
   authorRole      ITkerusRole
   content         String      @db.VarChar(600)
   didTryProject   Boolean     @default(false)

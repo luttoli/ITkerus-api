@@ -1,4 +1,11 @@
-import { Body, Controller, Param, Post, UseGuards } from '@nestjs/common';
+import {
+  Body,
+  Controller,
+  Param,
+  ParseIntPipe,
+  Post,
+  UseGuards,
+} from '@nestjs/common';
 import { AccessTokenGuard } from '../auth/access-token.guard';
 import { CurrentUserId } from '../auth/current-user-id.decorator';
 import { CreateNoteDto } from './dto/create-note.dto';
@@ -12,8 +19,8 @@ export class NotesController {
 
   @Post()
   createNote(
-    @CurrentUserId() userId: string,
-    @Param('projectId') projectId: string,
+    @CurrentUserId() userId: number,
+    @Param('projectId', ParseIntPipe) projectId: number,
     @Body() request: CreateNoteDto,
   ): Promise<NoteResponseDto> {
     return this.notesService.createNote(userId, projectId, request);

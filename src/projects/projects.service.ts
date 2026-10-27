@@ -224,7 +224,7 @@ export class ProjectsService {
     return { projects: items, nextCursor };
   }
 
-  async getProject(projectId: string): Promise<ProjectDetailResponseDto> {
+  async getProject(projectId: number): Promise<ProjectDetailResponseDto> {
     const project = await this.prisma.projectPost.findFirst({
       where: {
         id: projectId,
@@ -241,7 +241,7 @@ export class ProjectsService {
   }
 
   async createProject(
-    userId: string,
+    userId: number,
     request: CreateProjectDto,
   ): Promise<ProjectResponseDto> {
     this.validateBusinessRules(request);
@@ -298,8 +298,8 @@ export class ProjectsService {
   }
 
   async updateProject(
-    userId: string,
-    projectId: string,
+    userId: number,
+    projectId: number,
     request: UpdateProjectDto,
   ): Promise<ProjectResponseDto> {
     if (Object.keys(request).length === 0) {
@@ -364,7 +364,7 @@ export class ProjectsService {
     }
   }
 
-  async deleteProject(userId: string, projectId: string): Promise<void> {
+  async deleteProject(userId: number, projectId: number): Promise<void> {
     await this.findOwnedActiveProject(userId, projectId);
 
     try {
@@ -387,8 +387,8 @@ export class ProjectsService {
   }
 
   private async findOwnedActiveProject(
-    userId: string,
-    projectId: string,
+    userId: number,
+    projectId: number,
   ): Promise<ProjectResult> {
     const project = await this.prisma.projectPost.findUnique({
       where: { id: projectId },

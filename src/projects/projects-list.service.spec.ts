@@ -42,7 +42,7 @@ describe('ProjectsService project list', () => {
         itkerusNoteCount: 0,
         helpedCount: 0,
         author: {
-          id: '11111111-1111-4111-8111-111111111111',
+          id: 1,
           nickname: '세레나',
           primaryRole: ITkerusRole.DEVELOPER,
           secondaryRoles: [ITkerusRole.DESIGNER],
@@ -197,7 +197,7 @@ function createStoredProject(sequence: number) {
     requestedRoles: [{ role: ITkerusRole.DESIGNER }],
     links: [{ type: ProjectLinkType.WEB }],
     author: {
-      id: '11111111-1111-4111-8111-111111111111',
+      id: 1,
       nickname: '세레나',
       primaryRole: ITkerusRole.DEVELOPER,
       secondaryRoles: [{ role: ITkerusRole.DESIGNER }],
@@ -205,8 +205,8 @@ function createStoredProject(sequence: number) {
   };
 }
 
-function projectId(sequence: number): string {
-  return `00000000-0000-4000-8000-${String(sequence).padStart(12, '0')}`;
+function projectId(sequence: number): number {
+  return sequence;
 }
 
 async function expectHttpError(

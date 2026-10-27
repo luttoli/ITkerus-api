@@ -45,7 +45,7 @@
 
 ## 5. Prisma와 MariaDB 규칙
 
-- API 공개 ID는 UUID 문자열을 사용하고 iOS의 `UUID`와 바로 변환할 수 있게 한다.
+- API ID는 마이밀링과 같은 MariaDB 자동 증가 `Int`를 사용한다. 인증 사용자는 요청의 숫자 ID를 신뢰하지 않고 JWT의 검증된 사용자 ID와 소유권을 서버에서 다시 확인한다.
 - 개발 스키마 변경은 `prisma migrate dev`, 운영 반영은 `prisma migrate deploy`만 사용한다.
 - 운영 DB에서 `prisma db push`, `prisma migrate dev`, 임의 DROP과 전체 데이터 수정 쿼리를 실행하지 않는다.
 - 마이그레이션 파일은 코드와 함께 커밋하고 운영 배포 전에 개발 DB에서 신규 생성과 기존 데이터 보존을 확인한다.

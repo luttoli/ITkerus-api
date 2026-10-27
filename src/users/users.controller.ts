@@ -11,13 +11,13 @@ export class UsersController {
   constructor(private readonly usersService: UsersService) {}
 
   @Get('me')
-  getMyProfile(@CurrentUserId() userId: string): Promise<MyProfileResponseDto> {
+  getMyProfile(@CurrentUserId() userId: number): Promise<MyProfileResponseDto> {
     return this.usersService.getMyProfile(userId);
   }
 
   @Patch('me/profile')
   updateMyProfile(
-    @CurrentUserId() userId: string,
+    @CurrentUserId() userId: number,
     @Body() request: UpdateMyProfileDto,
   ): Promise<MyProfileResponseDto> {
     return this.usersService.updateMyProfile(userId, request);

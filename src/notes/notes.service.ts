@@ -28,8 +28,8 @@ export class NotesService {
   constructor(private readonly prisma: PrismaService) {}
 
   async createNote(
-    userId: string,
-    projectId: string,
+    userId: number,
+    projectId: number,
     request: CreateNoteDto,
   ): Promise<NoteResponseDto> {
     const author = await this.prisma.user.findUnique({

@@ -15,8 +15,8 @@ describe('ProjectsService project detail', () => {
   } as unknown as PrismaService;
   const service = new ProjectsService(prisma);
   const storedProject = {
-    id: 'project-id',
-    authorId: 'user-id',
+    id: 10,
+    authorId: 1,
     title: '냉장고컷',
     summary: '냉장고 속 재료로 요리를 추천하는 앱',
     story: '남은 재료를 잊지 않도록 만들었어요.',
@@ -34,14 +34,14 @@ describe('ProjectsService project detail', () => {
     requestedRoles: [{ role: ITkerusRole.DESIGNER }],
     links: [
       {
-        id: 'link-id',
+        id: 100,
         type: ProjectLinkType.APP_STORE,
         url: 'https://apps.apple.com/app/id123456789',
       },
     ],
     images: [{ url: 'https://example.com/screenshot.png' }],
     author: {
-      id: 'user-id',
+      id: 1,
       nickname: '세레나',
       primaryRole: ITkerusRole.DEVELOPER,
       secondaryRoles: [
@@ -57,9 +57,9 @@ describe('ProjectsService project detail', () => {
   });
 
   it('returns an active project with its public author profile', async () => {
-    await expect(service.getProject('project-id')).resolves.toEqual({
-      id: 'project-id',
-      authorId: 'user-id',
+    await expect(service.getProject(10)).resolves.toEqual({
+      id: 10,
+      authorId: 1,
       title: '냉장고컷',
       summary: '냉장고 속 재료로 요리를 추천하는 앱',
       story: '남은 재료를 잊지 않도록 만들었어요.',
@@ -70,7 +70,7 @@ describe('ProjectsService project detail', () => {
       iconUrl: 'https://example.com/icon.png',
       links: [
         {
-          id: 'link-id',
+          id: 100,
           type: ProjectLinkType.APP_STORE,
           url: 'https://apps.apple.com/app/id123456789',
         },
@@ -83,7 +83,7 @@ describe('ProjectsService project detail', () => {
       createdAt: new Date('2026-10-23T00:00:00.000Z'),
       updatedAt: new Date('2026-10-25T00:00:00.000Z'),
       author: {
-        id: 'user-id',
+        id: 1,
         nickname: '세레나',
         primaryRole: ITkerusRole.DEVELOPER,
         secondaryRoles: [ITkerusRole.DESIGNER, ITkerusRole.PLANNER],
@@ -92,7 +92,7 @@ describe('ProjectsService project detail', () => {
     expect(findFirst).toHaveBeenCalledWith(
       expect.objectContaining({
         where: {
-          id: 'project-id',
+          id: 10,
           deletedAt: null,
         },
       }),
@@ -102,7 +102,7 @@ describe('ProjectsService project detail', () => {
   it('returns 404 when the project is missing or soft deleted', async () => {
     findFirst.mockResolvedValue(null);
 
-    await expectNotFound(service.getProject('deleted-project-id'));
+    await expectNotFound(service.getProject(11));
   });
 
   it('does not expose a project whose author profile is incomplete', async () => {
@@ -114,7 +114,7 @@ describe('ProjectsService project detail', () => {
       },
     });
 
-    await expectNotFound(service.getProject('project-id'));
+    await expectNotFound(service.getProject(10));
   });
 });
 

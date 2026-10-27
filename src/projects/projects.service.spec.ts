@@ -43,8 +43,8 @@ describe('ProjectsService', () => {
     selectedImageUrl: 'https://example.com/screenshot.png',
   };
   const storedProject = {
-    id: 'project-id',
-    authorId: 'user-id',
+    id: 10,
+    authorId: 1,
     title: request.title,
     summary: request.summary,
     story: '',
@@ -56,7 +56,7 @@ describe('ProjectsService', () => {
     updatedAt: new Date('2026-10-23T00:00:00.000Z'),
     purposes: request.purposes.map((purpose) => ({ purpose })),
     requestedRoles: request.requestedRoles.map((role) => ({ role })),
-    links: [{ id: 'link-id', ...request.links[0] }],
+    links: [{ id: 100, ...request.links[0] }],
     images: request.imageUrls.map((url) => ({ url })),
   };
 
@@ -70,10 +70,10 @@ describe('ProjectsService', () => {
   });
 
   it('creates all project relations for the authenticated author', async () => {
-    await expect(service.createProject('user-id', request)).resolves.toEqual(
+    await expect(service.createProject(1, request)).resolves.toEqual(
       expect.objectContaining({
-        id: 'project-id',
-        authorId: 'user-id',
+        id: 10,
+        authorId: 1,
         purposes: request.purposes,
         requestedRoles: request.requestedRoles,
         imageUrls: request.imageUrls,
@@ -85,7 +85,7 @@ describe('ProjectsService', () => {
     expect(create).toHaveBeenCalledTimes(1);
     expect(capturedCreateInput?.data).toEqual(
       expect.objectContaining({
-        authorId: 'user-id',
+        authorId: 1,
         purposes: {
           create: request.purposes.map((purpose) => ({ purpose })),
         },
@@ -104,7 +104,7 @@ describe('ProjectsService', () => {
 
   it('rejects QUESTION without ITkerus FOCUS', async () => {
     await expectHttpError(
-      service.createProject('user-id', {
+      service.createProject(1, {
         ...request,
         itkerusFocus: ' ',
       }),
@@ -116,7 +116,7 @@ describe('ProjectsService', () => {
 
   it('rejects released projects without a public link', async () => {
     await expectHttpError(
-      service.createProject('user-id', { ...request, links: [] }),
+      service.createProject(1, { ...request, links: [] }),
       BadRequestException,
       'PROJECT_RELEASE_LINK_REQUIRED',
     );
@@ -124,7 +124,7 @@ describe('ProjectsService', () => {
 
   it('rejects external media for an in-development project', async () => {
     await expectHttpError(
-      service.createProject('user-id', {
+      service.createProject(1, {
         ...request,
         status: ProjectStatus.IN_DEVELOPMENT,
       }),
@@ -135,7 +135,7 @@ describe('ProjectsService', () => {
 
   it('rejects a representative image outside the registered image list', async () => {
     await expectHttpError(
-      service.createProject('user-id', {
+      service.createProject(1, {
         ...request,
         selectedImageUrl: 'https://example.com/other.png',
       }),
@@ -148,7 +148,7 @@ describe('ProjectsService', () => {
     findUnique.mockResolvedValue(null);
 
     await expectHttpError(
-      service.createProject('deleted-user-id', request),
+      service.createProject(99, request),
       UnauthorizedException,
       'AUTH_USER_NOT_FOUND',
     );
@@ -158,7 +158,7 @@ describe('ProjectsService', () => {
     findUnique.mockResolvedValue({ isOnboardingCompleted: false });
 
     await expectHttpError(
-      service.createProject('user-id', request),
+      service.createProject(1, request),
       ForbiddenException,
       'PROJECT_PROFILE_REQUIRED',
     );

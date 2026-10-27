@@ -16,17 +16,17 @@ describe('AuthTokenService', () => {
   const service = new AuthTokenService(jwtService, jwtConfig);
 
   it('issues and verifies an access token', async () => {
-    const issued = await service.issueAccessToken('user-id');
+    const issued = await service.issueAccessToken(1);
 
     await expect(service.verifyAccessToken(issued.accessToken)).resolves.toBe(
-      'user-id',
+      1,
     );
     expect(issued.tokenType).toBe('Bearer');
     expect(issued.expiresInSeconds).toBe(3600);
   });
 
   it('rejects a tampered token with a stable error code', async () => {
-    const issued = await service.issueAccessToken('user-id');
+    const issued = await service.issueAccessToken(1);
     const tampered = `${issued.accessToken.slice(0, -1)}x`;
 
     await expectUnauthorizedCode(
@@ -37,7 +37,7 @@ describe('AuthTokenService', () => {
 
   it('rejects an expired token with a stable error code', async () => {
     const expired = await jwtService.signAsync(
-      { sub: 'user-id', tokenType: 'access' },
+      { sub: '1', tokenType: 'access' },
       {
         secret,
         algorithm: 'HS256',

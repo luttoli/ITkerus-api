@@ -53,7 +53,7 @@ describe('AuthService', () => {
   it('returns the existing user for a known social account', async () => {
     findUnique.mockResolvedValue({
       user: {
-        id: 'existing-user-id',
+        id: 1,
         isOnboardingCompleted: true,
         termsAcceptedAt: acceptedAt,
         privacyAcceptedAt: acceptedAt,
@@ -65,7 +65,7 @@ describe('AuthService', () => {
       tokenType: 'Bearer',
       expiresInSeconds: 3600,
       user: {
-        id: 'existing-user-id',
+        id: 1,
         isNewUser: false,
         isOnboardingCompleted: true,
       },
@@ -87,7 +87,7 @@ describe('AuthService', () => {
     create.mockImplementation((input: Prisma.UserCreateArgs) => {
       capturedCreateInput = input;
       return Promise.resolve({
-        id: 'new-user-id',
+        id: 2,
         isOnboardingCompleted: false,
         termsAcceptedAt: acceptedAt,
         privacyAcceptedAt: acceptedAt,
@@ -105,7 +105,7 @@ describe('AuthService', () => {
       tokenType: 'Bearer',
       expiresInSeconds: 3600,
       user: {
-        id: 'new-user-id',
+        id: 2,
         isNewUser: true,
         isOnboardingCompleted: false,
       },
@@ -123,7 +123,7 @@ describe('AuthService', () => {
   it('requires consent from an existing user without a consent record', async () => {
     findUnique.mockResolvedValue({
       user: {
-        id: 'existing-user-id',
+        id: 1,
         isOnboardingCompleted: true,
         termsAcceptedAt: null,
         privacyAcceptedAt: null,
@@ -137,7 +137,7 @@ describe('AuthService', () => {
   it('stores missing consent timestamps for an existing user', async () => {
     findUnique.mockResolvedValue({
       user: {
-        id: 'existing-user-id',
+        id: 1,
         isOnboardingCompleted: true,
         termsAcceptedAt: null,
         privacyAcceptedAt: null,
@@ -146,7 +146,7 @@ describe('AuthService', () => {
     update.mockImplementation((input: Prisma.UserUpdateArgs) => {
       capturedUpdateInput = input;
       return Promise.resolve({
-        id: 'existing-user-id',
+        id: 1,
         isOnboardingCompleted: true,
         termsAcceptedAt: acceptedAt,
         privacyAcceptedAt: acceptedAt,
@@ -164,12 +164,12 @@ describe('AuthService', () => {
       tokenType: 'Bearer',
       expiresInSeconds: 3600,
       user: {
-        id: 'existing-user-id',
+        id: 1,
         isNewUser: false,
         isOnboardingCompleted: true,
       },
     });
-    expect(capturedUpdateInput?.where).toEqual({ id: 'existing-user-id' });
+    expect(capturedUpdateInput?.where).toEqual({ id: 1 });
     expect(capturedUpdateInput?.data.termsAcceptedAt).toBeInstanceOf(Date);
     expect(capturedUpdateInput?.data.privacyAcceptedAt).toBeInstanceOf(Date);
   });

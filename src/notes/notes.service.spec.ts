@@ -34,9 +34,9 @@ describe('NotesService', () => {
     didTryProject: true,
   };
   const storedNote = {
-    id: 'note-id',
-    projectId: 'project-id',
-    authorId: 'user-id',
+    id: 200,
+    projectId: 10,
+    authorId: 1,
     authorRole: ITkerusRole.DESIGNER,
     content: request.content,
     didTryProject: request.didTryProject,
@@ -51,7 +51,7 @@ describe('NotesService', () => {
       primaryRole: ITkerusRole.DESIGNER,
       isOnboardingCompleted: true,
     });
-    findProject.mockResolvedValue({ authorId: 'project-author-id' });
+    findProject.mockResolvedValue({ authorId: 2 });
     findNote.mockResolvedValue(null);
     createNote.mockImplementation((input: Prisma.ITkerusNoteCreateArgs) => {
       capturedCreateInput = input;
@@ -64,12 +64,12 @@ describe('NotesService', () => {
   });
 
   it('creates a note with the current profile role snapshot', async () => {
-    await expect(
-      service.createNote('user-id', 'project-id', request),
-    ).resolves.toEqual(storedNote);
+    await expect(service.createNote(1, 10, request)).resolves.toEqual(
+      storedNote,
+    );
     expect(capturedCreateInput?.data).toEqual({
-      projectId: 'project-id',
-      authorId: 'user-id',
+      projectId: 10,
+      authorId: 1,
       authorRole: ITkerusRole.DESIGNER,
       content: request.content,
       didTryProject: true,
@@ -80,7 +80,7 @@ describe('NotesService', () => {
     findUser.mockResolvedValue(null);
 
     await expectHttpError(
-      service.createNote('deleted-user-id', 'project-id', request),
+      service.createNote(99, 10, request),
       UnauthorizedException,
       'AUTH_USER_NOT_FOUND',
     );
@@ -93,7 +93,7 @@ describe('NotesService', () => {
     });
 
     await expectHttpError(
-      service.createNote('user-id', 'project-id', request),
+      service.createNote(1, 10, request),
       ForbiddenException,
       'NOTE_PROFILE_REQUIRED',
     );
@@ -103,27 +103,27 @@ describe('NotesService', () => {
     findProject.mockResolvedValue(null);
 
     await expectHttpError(
-      service.createNote('user-id', 'project-id', request),
+      service.createNote(1, 10, request),
       NotFoundException,
       'PROJECT_NOT_FOUND',
     );
   });
 
   it("rejects a note on the author's own project", async () => {
-    findProject.mockResolvedValue({ authorId: 'user-id' });
+    findProject.mockResolvedValue({ authorId: 1 });
 
     await expectHttpError(
-      service.createNote('user-id', 'project-id', request),
+      service.createNote(1, 10, request),
       ForbiddenException,
       'NOTE_OWN_PROJECT_FORBIDDEN',
     );
   });
 
   it('returns 409 when the user already wrote a note', async () => {
-    findNote.mockResolvedValue({ id: 'note-id', deletedAt: null });
+    findNote.mockResolvedValue({ id: 200, deletedAt: null });
 
     await expectHttpError(
-      service.createNote('user-id', 'project-id', request),
+      service.createNote(1, 10, request),
       ConflictException,
       'NOTE_ALREADY_EXISTS',
     );
@@ -132,14 +132,14 @@ describe('NotesService', () => {
 
   it('restores the same row when the previous note was deleted', async () => {
     findNote.mockResolvedValue({
-      id: 'note-id',
+      id: 200,
       deletedAt: new Date('2026-10-24T00:00:00.000Z'),
     });
 
-    await expect(
-      service.createNote('user-id', 'project-id', request),
-    ).resolves.toEqual(storedNote);
-    expect(capturedUpdateInput?.where).toEqual({ id: 'note-id' });
+    await expect(service.createNote(1, 10, request)).resolves.toEqual(
+      storedNote,
+    );
+    expect(capturedUpdateInput?.where).toEqual({ id: 200 });
     expect(capturedUpdateInput?.data).toEqual({
       authorRole: ITkerusRole.DESIGNER,
       content: request.content,
@@ -159,7 +159,7 @@ describe('NotesService', () => {
     );
 
     await expectHttpError(
-      service.createNote('user-id', 'project-id', request),
+      service.createNote(1, 10, request),
       ConflictException,
       'NOTE_ALREADY_EXISTS',
     );

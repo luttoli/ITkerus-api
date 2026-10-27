@@ -1,7 +1,7 @@
 import { ITkerusRole } from '@prisma/client';
 
 export type MyProfileResponseDto = {
-  id: string;
+  id: number;
   nickname: string | null;
   introduction: string | null;
   primaryRole: ITkerusRole | null;

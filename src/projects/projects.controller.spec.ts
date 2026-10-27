@@ -54,13 +54,11 @@ describe('ProjectsController', () => {
   });
 
   it('passes a public project ID to the detail service', async () => {
-    const response = { id: 'project-id', title: '브랜드킷' };
+    const response = { id: 10, title: '브랜드킷' };
     getProject.mockResolvedValue(response);
 
-    await expect(controller.getProject('project-id')).resolves.toEqual(
-      response,
-    );
-    expect(getProject).toHaveBeenCalledWith('project-id');
+    await expect(controller.getProject(10)).resolves.toEqual(response);
+    expect(getProject).toHaveBeenCalledWith(10);
   });
 
   it('keeps detail public and protects every write endpoint', () => {
@@ -72,25 +70,25 @@ describe('ProjectsController', () => {
   });
 
   it('passes the authenticated user ID and body to the service', async () => {
-    const response = { id: 'project-id' };
+    const response = { id: 10 };
     createProject.mockResolvedValue(response);
 
-    await expect(controller.createProject('user-id', request)).resolves.toEqual(
+    await expect(controller.createProject(1, request)).resolves.toEqual(
       response,
     );
-    expect(createProject).toHaveBeenCalledWith('user-id', request);
+    expect(createProject).toHaveBeenCalledWith(1, request);
   });
 
   it('passes project ownership context to the update service', async () => {
-    const response = { id: 'project-id', title: '새 이름' };
+    const response = { id: 10, title: '새 이름' };
     updateProject.mockResolvedValue(response);
 
     await expect(
-      controller.updateProject('user-id', 'project-id', {
+      controller.updateProject(1, 10, {
         title: '새 이름',
       }),
     ).resolves.toEqual(response);
-    expect(updateProject).toHaveBeenCalledWith('user-id', 'project-id', {
+    expect(updateProject).toHaveBeenCalledWith(1, 10, {
       title: '새 이름',
     });
   });
@@ -98,10 +96,8 @@ describe('ProjectsController', () => {
   it('passes project ownership context to the delete service', async () => {
     deleteProject.mockResolvedValue(undefined);
 
-    await expect(
-      controller.deleteProject('user-id', 'project-id'),
-    ).resolves.toBeUndefined();
-    expect(deleteProject).toHaveBeenCalledWith('user-id', 'project-id');
+    await expect(controller.deleteProject(1, 10)).resolves.toBeUndefined();
+    expect(deleteProject).toHaveBeenCalledWith(1, 10);
   });
 });
 

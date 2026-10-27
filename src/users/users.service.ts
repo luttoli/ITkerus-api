@@ -33,7 +33,7 @@ type ProfileResult = Prisma.UserGetPayload<{ select: typeof profileSelect }>;
 export class UsersService {
   constructor(private readonly prisma: PrismaService) {}
 
-  async getMyProfile(userId: string): Promise<MyProfileResponseDto> {
+  async getMyProfile(userId: number): Promise<MyProfileResponseDto> {
     const profile = await this.prisma.user.findUnique({
       where: { id: userId },
       select: profileSelect,
@@ -54,7 +54,7 @@ export class UsersService {
   }
 
   async updateMyProfile(
-    userId: string,
+    userId: number,
     request: UpdateMyProfileDto,
   ): Promise<MyProfileResponseDto> {
     if (request.secondaryRoles.includes(request.primaryRole)) {

@@ -5,7 +5,7 @@ import { AuthenticatedRequest } from './authenticated-request';
 
 describe('AccessTokenGuard', () => {
   it('stores the verified user ID on the request', async () => {
-    const verifyAccessToken = jest.fn().mockResolvedValue('user-id');
+    const verifyAccessToken = jest.fn().mockResolvedValue(1);
     const authTokenService = {
       verifyAccessToken,
     } as unknown as AuthTokenService;
@@ -14,7 +14,7 @@ describe('AccessTokenGuard', () => {
 
     await expect(guard.canActivate(context)).resolves.toBe(true);
     expect(verifyAccessToken).toHaveBeenCalledWith('valid-token');
-    expect(request.auth).toEqual({ userId: 'user-id' });
+    expect(request.auth).toEqual({ userId: 1 });
   });
 
   it('rejects a missing authorization header', async () => {

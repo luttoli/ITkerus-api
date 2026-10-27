@@ -5,18 +5,15 @@ import {
 
 export type ProjectCursor = {
   createdAt: Date;
-  id: string;
+  id: number;
   scope: string;
 };
 
 type SerializedProjectCursor = {
   createdAt: string;
-  id: string;
+  id: number;
   scope: string;
 };
-
-const uuidPattern =
-  /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 
 export function encodeProjectCursor(cursor: ProjectCursor): string {
   const serialized: SerializedProjectCursor = {
@@ -44,7 +41,8 @@ export function decodeProjectCursor(
     if (
       Number.isNaN(createdAt.getTime()) ||
       createdAt.toISOString() !== parsed.createdAt ||
-      !uuidPattern.test(parsed.id) ||
+      !Number.isSafeInteger(parsed.id) ||
+      parsed.id <= 0 ||
       parsed.scope !== expectedScope
     ) {
       throw new Error('Invalid project cursor values.');
@@ -69,7 +67,7 @@ function isSerializedProjectCursor(
   const record = value as Record<string, unknown>;
   return (
     typeof record.createdAt === 'string' &&
-    typeof record.id === 'string' &&
+    typeof record.id === 'number' &&
     typeof record.scope === 'string'
   );
 }
