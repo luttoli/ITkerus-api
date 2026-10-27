@@ -51,8 +51,25 @@ model User {
 
   socialAccounts SocialAccount[]
   secondaryRoles UserSecondaryRole[]
+  refreshSessions RefreshSession[]
   projectPosts   ProjectPost[]
   itkerusNotes   ITkerusNote[]
+}
+
+model RefreshSession {
+  id        Int       @id @default(autoincrement())
+  userId    Int
+  familyId  String    @db.Char(36)
+  tokenHash String    @unique @db.Char(64)
+  expiresAt DateTime  @db.DateTime(3)
+  revokedAt DateTime? @db.DateTime(3)
+  createdAt DateTime  @default(now()) @db.DateTime(3)
+  updatedAt DateTime  @updatedAt @db.DateTime(3)
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, revokedAt, expiresAt])
+  @@index([familyId, revokedAt])
 }
 
 model SocialAccount {

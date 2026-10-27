@@ -2,7 +2,7 @@ import { HttpException } from '@nestjs/common';
 import { Prisma, SocialProvider } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
 import { AuthService } from './auth.service';
-import { AuthTokenService } from './auth-token.service';
+import { AuthSessionService } from './auth-session.service';
 import { SocialIdentityTokenService } from './social/social-identity-token.service';
 
 describe('AuthService', () => {
@@ -19,14 +19,14 @@ describe('AuthService', () => {
   const socialIdentityTokenService = {
     verify: verifySocialIdentity,
   } as unknown as SocialIdentityTokenService;
-  const issueAccessToken = jest.fn();
-  const authTokenService = {
-    issueAccessToken,
-  } as unknown as AuthTokenService;
+  const issueSession = jest.fn();
+  const authSessionService = {
+    issueSession,
+  } as unknown as AuthSessionService;
   const service = new AuthService(
     prisma,
     socialIdentityTokenService,
-    authTokenService,
+    authSessionService,
   );
   const request = {
     provider: SocialProvider.APPLE,
@@ -43,10 +43,12 @@ describe('AuthService', () => {
       provider: SocialProvider.APPLE,
       providerUserId: 'apple-user-id',
     });
-    issueAccessToken.mockResolvedValue({
+    issueSession.mockResolvedValue({
       accessToken: 'itkerus-access-token',
+      refreshToken: 'itkerus-refresh-token',
       tokenType: 'Bearer',
       expiresInSeconds: 3600,
+      refreshExpiresInSeconds: 7776000,
     });
   });
 
@@ -62,8 +64,10 @@ describe('AuthService', () => {
 
     await expect(service.login(request)).resolves.toEqual({
       accessToken: 'itkerus-access-token',
+      refreshToken: 'itkerus-refresh-token',
       tokenType: 'Bearer',
       expiresInSeconds: 3600,
+      refreshExpiresInSeconds: 7776000,
       user: {
         id: 1,
         isNewUser: false,
@@ -79,7 +83,7 @@ describe('AuthService', () => {
 
     await expectHttpError(service.login(request), 428, 'AUTH_CONSENT_REQUIRED');
     expect(create).not.toHaveBeenCalled();
-    expect(issueAccessToken).not.toHaveBeenCalled();
+    expect(issueSession).not.toHaveBeenCalled();
   });
 
   it('creates a user after both required documents are accepted', async () => {
@@ -102,8 +106,10 @@ describe('AuthService', () => {
       }),
     ).resolves.toEqual({
       accessToken: 'itkerus-access-token',
+      refreshToken: 'itkerus-refresh-token',
       tokenType: 'Bearer',
       expiresInSeconds: 3600,
+      refreshExpiresInSeconds: 7776000,
       user: {
         id: 2,
         isNewUser: true,
@@ -161,8 +167,10 @@ describe('AuthService', () => {
       }),
     ).resolves.toEqual({
       accessToken: 'itkerus-access-token',
+      refreshToken: 'itkerus-refresh-token',
       tokenType: 'Bearer',
       expiresInSeconds: 3600,
+      refreshExpiresInSeconds: 7776000,
       user: {
         id: 1,
         isNewUser: false,

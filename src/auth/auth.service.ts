@@ -2,7 +2,7 @@ import { Injectable } from '@nestjs/common';
 import { Prisma } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
 import { createConsentRequiredException } from './auth-error';
-import { AuthTokenService } from './auth-token.service';
+import { AuthSessionService } from './auth-session.service';
 import { LoginRequestDto } from './dto/login-request.dto';
 import { LoginResponseDto } from './dto/login-response.dto';
 import { VerifiedSocialIdentity } from './social/social-identity-token.service';
@@ -20,7 +20,7 @@ export class AuthService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly socialIdentityTokenService: SocialIdentityTokenService,
-    private readonly authTokenService: AuthTokenService,
+    private readonly authSessionService: AuthSessionService,
   ) {}
 
   async login(request: LoginRequestDto): Promise<LoginResponseDto> {
@@ -30,7 +30,7 @@ export class AuthService {
       request.nonce,
     );
     const { user, isNewUser } = await this.findOrCreateUser(identity, request);
-    const issuedToken = await this.authTokenService.issueAccessToken(user.id);
+    const issuedToken = await this.authSessionService.issueSession(user.id);
 
     return {
       ...issuedToken,
@@ -40,6 +40,14 @@ export class AuthService {
         isOnboardingCompleted: user.isOnboardingCompleted,
       },
     };
+  }
+
+  refresh(refreshToken: string) {
+    return this.authSessionService.refreshSession(refreshToken);
+  }
+
+  async logout(refreshToken: string): Promise<void> {
+    await this.authSessionService.revokeSession(refreshToken);
   }
 
   private async findOrCreateUser(

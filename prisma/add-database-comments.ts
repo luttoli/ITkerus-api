@@ -33,6 +33,19 @@ const descriptions: Record<string, TableDescription> = {
       createdAt: '소셜 계정 연결 일시(UTC)',
     },
   },
+  RefreshSession: {
+    description: '사용자의 로그인 유지와 토큰 회전을 관리하는 세션',
+    columns: {
+      id: '자동 증가 리프레시 세션 번호',
+      userId: '세션을 소유한 User.id',
+      familyId: '토큰 회전 계보를 식별하는 UUID',
+      tokenHash: '원문을 저장하지 않는 SHA-256 리프레시 토큰 해시',
+      expiresAt: '리프레시 세션 만료 일시(UTC)',
+      revokedAt: '사용 또는 로그아웃으로 폐기된 일시(UTC), 활성 시 NULL',
+      createdAt: '리프레시 세션 생성 일시(UTC)',
+      updatedAt: '리프레시 세션 마지막 수정 일시(UTC)',
+    },
+  },
   UserSecondaryRole: {
     description: '사용자가 선택한 최대 두 개의 보조 역할',
     columns: {

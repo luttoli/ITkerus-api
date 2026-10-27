@@ -7,6 +7,10 @@ export type JwtAccessConfig = {
   expiresInSeconds: number;
 };
 
+export type RefreshTokenConfig = {
+  expiresInSeconds: number;
+};
+
 export function loadJwtAccessConfig(
   environment: NodeJS.ProcessEnv,
 ): JwtAccessConfig {
@@ -27,7 +31,21 @@ export function loadJwtAccessConfig(
   return { secret, expiresInSeconds };
 }
 
+export function loadRefreshTokenConfig(
+  environment: NodeJS.ProcessEnv,
+): RefreshTokenConfig {
+  const expiresInSeconds = Number(environment.REFRESH_TOKEN_EXPIRES_IN_SECONDS);
+  if (!Number.isSafeInteger(expiresInSeconds) || expiresInSeconds <= 0) {
+    throw new Error(
+      'REFRESH_TOKEN_EXPIRES_IN_SECONDS must be a positive integer.',
+    );
+  }
+
+  return { expiresInSeconds };
+}
+
 @Injectable()
 export class JwtConfigService {
   readonly access = loadJwtAccessConfig(process.env);
+  readonly refresh = loadRefreshTokenConfig(process.env);
 }

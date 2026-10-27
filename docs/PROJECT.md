@@ -141,7 +141,7 @@ Prisma의 개발 마이그레이션은 고정된 `itkerus_dev_shadow`를 변경 
 - `nonce`: 로그인 요청에서 사용한 16~256자의 원본 난수. Apple은 서버가 SHA-256한 값과 토큰 claim을 비교하고 Kakao는 원문과 비교한다.
 - `acceptedTerms`, `acceptedPrivacy`: 선택 Boolean. 동의 기록이 없는 사용자는 둘 다 `true`일 때만 로그인 또는 계정 생성을 완료한다.
 
-로그인 성공 응답은 `accessToken`, `tokenType`, `expiresInSeconds`와 사용자 `id`, `isNewUser`, `isOnboardingCompleted`만 반환한다. 이메일, 제공자 사용자 ID와 외부 토큰은 응답에 포함하지 않는다.
+로그인 성공 응답은 `accessToken`, `refreshToken`, 각각의 만료 초, `tokenType`과 사용자 `id`, `isNewUser`, `isOnboardingCompleted`만 반환한다. 이메일, 제공자 사용자 ID와 외부 토큰은 응답에 포함하지 않는다.
 
 서버는 소셜 토큰을 먼저 검증한다. 신규 사용자이거나 기존 사용자에게 필수 동의 기록이 없는데 동의값을 보내지 않으면 계정을 새로 만들거나 세션을 발급하지 않고 `AUTH_CONSENT_REQUIRED` 428을 반환한다. 두 필수 동의를 전달한 재요청에서 동의 시각을 저장하고 로그인을 완료한다. 이미 동의한 기존 사용자는 동의값 없이 바로 로그인한다.
 
@@ -228,11 +228,13 @@ Prisma의 개발 마이그레이션은 고정된 `itkerus_dev_shadow`를 변경 
 - Kakao는 `https://kauth.kakao.com/.well-known/jwks.json`, issuer `https://kauth.kakao.com`, `KAKAO_APP_KEY` audience를 사용한다. Kakao Developers에서 OpenID Connect를 활성화해야 ID 토큰이 발급된다.
 - 공개키는 JOSE 원격 JWKS 캐시를 사용하고 5초 안에 가져오지 못하면 `AUTH_PROVIDER_UNAVAILABLE` 503을 반환한다.
 - 제공자 설정 누락은 `AUTH_PROVIDER_NOT_CONFIGURED` 503, 서명·issuer·audience·만료·nonce 오류는 `AUTH_PROVIDER_TOKEN_INVALID` 401을 반환한다.
-- 검증 성공 후 자체 액세스 JWT를 발급하고 iOS는 Keychain에 저장한다.
+- 검증 성공 후 자체 액세스 JWT와 불투명 리프레시 토큰을 발급하고 iOS는 둘 다 Keychain에 저장한다.
 - 액세스 JWT는 `HS256`, issuer `itkerus-api`, audience `itkerus-ios`를 사용한다. 비밀키와 만료 초는 각각 `JWT_ACCESS_SECRET`, `JWT_ACCESS_EXPIRES_IN_SECONDS` 환경변수로만 주입한다.
 - 인증 API는 `Authorization: Bearer <token>`을 사용하고 검증된 `sub`를 요청의 사용자 ID로 전달한다.
 - 토큰 없음은 `AUTH_TOKEN_MISSING`, 변조·형식·claim 오류는 `AUTH_TOKEN_INVALID`, 만료는 `AUTH_TOKEN_EXPIRED` 코드의 401을 반환한다.
-- 현재는 액세스 토큰 기반만 구현하며 refresh token과 강제 세션 폐기는 로그인·로그아웃 정책을 확정할 때 추가한다.
+- 액세스 JWT 기본 만료는 1시간, 리프레시 세션 기본 만료는 마지막 정상 갱신부터 90일이다. 리프레시 원문은 DB에 저장하지 않고 SHA-256 해시만 저장한다.
+- `POST /auth/refresh`는 유효한 리프레시 토큰을 새 토큰으로 회전하고 액세스 JWT도 다시 발급한다. 이미 회전된 토큰이 재사용되면 같은 `familyId`의 활성 세션 전체를 폐기한다.
+- `POST /auth/logout`은 전달한 리프레시 세션을 폐기한다. iOS는 사용자가 로그아웃을 선택하면 서버 응답 성공 여부와 관계없이 로컬 Keychain 토큰을 정리한다.
 - 신규 사용자는 소셜 인증 뒤 필수 약관 동의, 닉네임·주 역할·보조 역할 저장 순서로 가입 완료 상태가 된다.
 - 프로젝트 수정·삭제는 작성자만 가능하다.
 - 노트 수정·삭제는 노트 작성자만 가능하다.

@@ -3,6 +3,7 @@ import { JwtModule } from '@nestjs/jwt';
 import { AccessTokenGuard } from './access-token.guard';
 import { AuthController } from './auth.controller';
 import { AuthService } from './auth.service';
+import { AuthSessionService } from './auth-session.service';
 import { AuthTokenService } from './auth-token.service';
 import { JwtConfigService } from './jwt-config.service';
 import { OidcJwtService } from './social/oidc-jwt.service';
@@ -15,6 +16,7 @@ import { SocialIdentityTokenService } from './social/social-identity-token.servi
   providers: [
     JwtConfigService,
     AuthTokenService,
+    AuthSessionService,
     AccessTokenGuard,
     SocialAuthConfigService,
     OidcJwtService,

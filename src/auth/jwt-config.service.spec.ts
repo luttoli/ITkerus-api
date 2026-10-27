@@ -1,4 +1,7 @@
-import { loadJwtAccessConfig } from './jwt-config.service';
+import {
+  loadJwtAccessConfig,
+  loadRefreshTokenConfig,
+} from './jwt-config.service';
 
 describe('loadJwtAccessConfig', () => {
   it('loads a valid access token configuration', () => {
@@ -29,5 +32,29 @@ describe('loadJwtAccessConfig', () => {
         JWT_ACCESS_EXPIRES_IN_SECONDS: '0',
       }),
     ).toThrow('JWT_ACCESS_EXPIRES_IN_SECONDS');
+  });
+});
+
+describe('loadRefreshTokenConfig', () => {
+  it('loads a valid refresh token expiration', () => {
+    expect(
+      loadRefreshTokenConfig({
+        REFRESH_TOKEN_EXPIRES_IN_SECONDS: '7776000',
+      }),
+    ).toEqual({ expiresInSeconds: 7776000 });
+  });
+
+  it('rejects a missing expiration', () => {
+    expect(() => loadRefreshTokenConfig({})).toThrow(
+      'REFRESH_TOKEN_EXPIRES_IN_SECONDS',
+    );
+  });
+
+  it('rejects a non-positive expiration', () => {
+    expect(() =>
+      loadRefreshTokenConfig({
+        REFRESH_TOKEN_EXPIRES_IN_SECONDS: '0',
+      }),
+    ).toThrow('REFRESH_TOKEN_EXPIRES_IN_SECONDS');
   });
 });
